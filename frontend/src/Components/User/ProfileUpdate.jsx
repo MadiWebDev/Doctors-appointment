@@ -1,0 +1,119 @@
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate  } from "react-router-dom";
+import { useAlert } from "react-alert";
+import { clearErrors, loadUserAction, updateProfileAction } from "../../Actions/userActions";
+import { UPDATE_PROFILE_RESET } from "../../Constants/userConstants";
+import Loader from "../Loader";
+
+
+
+const ProfileUpdate = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { user } = useSelector((state) => state.user);
+    const { error, isUpdated, loading } = useSelector((state) => state.profile);
+    const alert = useAlert();
+    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
+  
+    useEffect(() => {
+      if (user) {
+        setUsername(user.username || "");
+        setEmail(user.email || "");
+      }
+    }, [user]);
+  
+    const updateProfileSubmit = (e) => {
+      e.preventDefault();
+  
+      const myForm = new FormData();
+  
+      myForm.append("username", username);
+      myForm.append("email", email);
+      
+  
+      dispatch(updateProfileAction(myForm));
+      
+    };
+  
+ 
+  
+    useEffect(() => {
+      if (error) {
+        alert.error(error);
+        dispatch(clearErrors());
+      }
+      if (isUpdated) {
+        alert.success("Profile Updated Successfully");
+        navigate("/account");
+        dispatch({
+          type: UPDATE_PROFILE_RESET,
+        });
+        dispatch(loadUserAction());
+      }
+    }, [error, isUpdated, alert, dispatch, navigate]);
+  
+    return (
+      <>
+        {loading ? (
+          <Loader />
+        ) : (
+          <div className="min-h-screen flex m-14 items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full bg-gradient-to-tl from-[#c1bcb8] to-[#54452b] via-[#c2bab2] rounded-xl shadow-2xl overflow-hidden p-8 space-y-8">
+              <div className="">
+                <img
+                  src="/sethoscope.jpeg"
+                  alt=""
+                  className="mx-auto h-auto w-40 mix-blend-color-burn  "
+                />
+              </div>
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Update Profile
+              </h2>
+  
+              <form
+                className="mt-8 space-y-6"
+                onSubmit={updateProfileSubmit}
+                encType="multipart/form-data"
+              >
+     
+  
+                <div className="space-y-7">
+                  <input
+                    type="email"
+                    placeholder="Email address"
+                    className="appearance-none rounded-lg relative block w-full px-3 py-2 border ring-black ring-2 shadow-2xl placeholder-gray-500 rounded-t-md focus:ring-indigo-500 focus:z-10 sm:text-sm peer h-10 border-b-2 border-gray-300 text-white bg-transparent placeholder-current focus:outline-none focus:border-purple-500"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+  
+                  <input
+                    type="text"
+                    placeholder="Username"
+                    className="appearance-none rounded-lg relative block w-full px-3 py-2 border ring-black ring-2 shadow-2xl placeholder-gray-500 rounded-t-md focus:ring-indigo-500 focus:z-10 sm:text-sm peer h-10 border-b-2 border-gray-300 text-white bg-transparent placeholder-current focus:outline-none focus:border-purple-500"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+  
+  <div>
+                  <button
+                    type="submit"
+                    className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#8b5b64] hover:bg-[#7e3e4a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#c2bab2] ${
+                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={loading}
+                  >
+                    {loading ? "Loading..." : "Update"}
+                  </button>
+                </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+export default ProfileUpdate
