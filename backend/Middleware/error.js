@@ -31,7 +31,7 @@ export const errorMiddleWare = (err, req, res, next) => {
  // Send the error response
  res.status(err.statusCode).json({
     success: false,
-    error: err.message,
+    message: err.message,
  });
 };
 

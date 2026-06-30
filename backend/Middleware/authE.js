@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
   if (!req.cookies) {
     return next(new ErrorHandler("No cookies found", 401));
   }
-  const token = req.cookies.token;
+  const token = req.cookies.accessToken;
   if (!token) {
     return next(new ErrorHandler("Please login to access this resource", 401));
   }
