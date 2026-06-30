@@ -1,0 +1,52 @@
+{
+  "name": "MediConnect - Doctor Appointment Booking",
+  "short_name": "MediConnect",
+  "description": "Book doctor appointments online. Find trusted doctors, schedule visits, video consultations, and manage your healthcare journey.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0284c7",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "medical", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Find Doctors",
+      "short_name": "Doctors",
+      "description": "Search and find doctors",
+      "url": "/doctors",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "My Appointments",
+      "short_name": "Appointments",
+      "description": "View your appointments",
+      "url": "/account",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

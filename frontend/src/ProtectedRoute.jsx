@@ -1,34 +1,49 @@
+// ProtectedRoute.jsx
+import React from "react";
+import { Navigate, useLocation, Outlet } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { PageLoader } from "@/Components/ui/Spinner";
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import Loader from './Components/Loader';
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
-const ProtectedRoute = (  Component ,isAdmin) => {
-    //const Navigate = useNavigate()
- return (props) => {
-    const { loading, user, isAuthenticated ,  } = useSelector(state => state.user);
+  // Handle loading state
+  if (loading) {
+    return <PageLoader text="Verifying access..." />;
+  }
 
-    // If loading, show a loading indicator or fallback content
-    if (loading) {
-       return <div><Loader/></div>; // Replace with your preferred loading indicator
+  // Handle case when isAuthenticated is undefined or null
+  if (typeof isAuthenticated === 'undefined' || isAuthenticated === null) {
+    return <PageLoader text="Checking authentication..." />;
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Handle case where user is null but isAuthenticated is true (edge case)
+  if (!user) {
+    return <PageLoader text="Loading user data..." />;
+  }
+
+  // Check role-based access
+  if (allowedRoles.length > 0) {
+    const hasRequiredRole = allowedRoles.includes(user.role);
+    
+    if (!hasRequiredRole) {
+      return <Navigate to="/unauthorized" replace />;
     }
+  }
 
-    if(!isAuthenticated){
-        return <Navigate to="/login" replace />;
-    }
+  // If children are provided (direct usage), render them
+  if (children) {
+    return children;
+  }
 
-    // If there's an error, redirect to an error page or show an error message
-    if (!user) {
-       return <Navigate to="/error" replace />; // Replace "/error" with your error handling route
-    }
-    if (isAdmin === true && user.role !== "admin" ) {
-      return <Navigate to="/error" replace />; // Replace "/error" with your error handling route
-   }
-
-    // Render the component if authenticated
-    return <Component {...props} />;
- };
+  // Otherwise render Outlet for nested routes
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

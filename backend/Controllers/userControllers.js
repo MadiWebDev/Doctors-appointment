@@ -7,7 +7,7 @@ import catchAsyncError from "../Middleware/catchAsyncError.js";
 
 //*** Register User  **//
 export const registerUser = catchAsyncError(async (req, res, next) => {
-  const { email, password, confirmPassword, username } = req.body;
+  const { email, password, confirmPassword, name, phone } = req.body;
 
   if (password !== confirmPassword) {
     return next(new ErrorHandler("Passwords do not match", 400));
@@ -34,15 +34,11 @@ if (!regex.test(password)) {
     return next(new ErrorHandler("User already exists", 400));
   }
 
-  const usernameExists = await User.findOne({ username });
-  if (usernameExists) {
-    return next(new ErrorHandler("Username already exists", 400));
-  }
-
   const user = await User.create({
     email,
     password,
-    username,
+    name,
+    phone,
   });
 
   if (!user) {
@@ -231,7 +227,7 @@ export const UpdateProfile = catchAsyncError(async (req, res, next) => {
   }
 
   const newUserData = {
-    username: req.body.username,
+    name: req.body.name,
     email: req.body.email,
   };
 

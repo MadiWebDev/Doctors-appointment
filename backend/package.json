@@ -14,17 +14,30 @@
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.10.0",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
+    "date-fns": "^4.4.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.5.2",
     "express-session": "^1.18.0",
+    "helmet": "^8.2.0",
+    "ioredis": "^5.4.1",
     "joi": "^17.13.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.3",
+    "multer": "^2.2.0",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.13",
     "nodemon": "^3.1.0",
-    "validator": "^13.11.0"
+    "socket.io": "^4.8.3",
+    "validator": "^13.11.0",
+    "xss-clean": "^0.1.4",
+    "zod": "^4.4.3",
+    "@zoomus/websdk": "^2.18.2"
   }
 }
