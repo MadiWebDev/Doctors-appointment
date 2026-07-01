@@ -68,7 +68,7 @@ const BookAppointment = () => {
     <div className="max-w-2xl mx-auto">
       <button
         onClick={() => navigate(`/patient/doctors/${id}`)}
-        className="text-slate-600 hover:text-slate-900 mb-6 inline-flex items-center"
+        className="text-foreground  mb-6 inline-flex items-center"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to doctor profile
@@ -78,7 +78,7 @@ const BookAppointment = () => {
         <h1 className="text-2xl font-bold text-slate-900 mb-6">Confirm Booking</h1>
 
         {/* Doctor Info */}
-        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg mb-6">
+        <div className="flex items-center gap-4 p-4 bg-card rounded-lg mb-6">
           <Avatar
             name={`${doctor.firstName || ''} ${doctor.lastName || ''}`}
             src={doctor.profileImage?.url}
@@ -88,7 +88,7 @@ const BookAppointment = () => {
             <h2 className="font-semibold text-slate-900">
               Dr. {doctor.firstName} {doctor.lastName}
             </h2>
-            <p className="text-sm text-slate-600">{doctor.specialization}</p>
+            <p className="text-sm text-foreground">{doctor.specialization}</p>
           </div>
         </div>
 

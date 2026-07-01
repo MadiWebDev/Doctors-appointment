@@ -6,6 +6,9 @@ import {
   deleteUser,
   getPendingVerifications,
   verifyDoctor,
+  suspendDoctor,
+  unsuspendDoctor,
+  permanentRemoveDoctor,
   getSystemLogs,
   getAllNotifications,
   broadcastNotification,
@@ -41,6 +44,11 @@ router.put("/doctors/:id/reject",  (req, res, next) => {
   if (!req.body.status) req.body.status = "rejected";
   return verifyDoctor(req, res, next);
 });
+
+// Doctor Post-Approval Management
+router.put("/doctors/:id/suspend",          suspendDoctor);
+router.put("/doctors/:id/unsuspend",        unsuspendDoctor);
+router.delete("/doctors/:id/permanent",     permanentRemoveDoctor);
 
 // System Logs
 router.get("/logs", getSystemLogs);

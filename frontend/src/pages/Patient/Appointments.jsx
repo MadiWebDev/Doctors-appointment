@@ -92,7 +92,7 @@ const Appointments = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">My Appointments</h1>
+        <h1 className="text-2xl font-bold text-foreground">My Appointments</h1>
         <p className="text-slate-500 mt-1">Track and manage your scheduled consultations</p>
       </div>
 
@@ -119,7 +119,7 @@ const Appointments = () => {
       </div>
 
       {/* Appointments List */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {filteredAppointments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

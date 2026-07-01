@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check, X, Search, ExternalLink, Stethoscope } from 'lucide-react';
+import { Check, X, Search, ExternalLink, Stethoscope, PauseCircle, PlayCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDoctors } from '../../features/doctors/doctorSlice';
 import Avatar from '../../Components/shared/Avatar';
@@ -10,22 +10,30 @@ import { formatDate } from '../../utils/helpers';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const TABS = ['pending', 'approved', 'rejected', 'all'];
+const TABS = ['pending', 'approved', 'suspended', 'rejected', 'all'];
 
 const TAB_COLORS = {
   pending: 'from-amber-500 to-orange-500',
   approved: 'from-emerald-500 to-green-600',
+  suspended: 'from-orange-500 to-amber-600',
   rejected: 'from-rose-500 to-red-600',
   all: 'from-violet-600 to-purple-700',
+};
+
+// Modal types
+const MODAL = {
+  REJECT: 'reject',
+  SUSPEND: 'suspend',
+  REMOVE: 'remove',
 };
 
 const Doctors = () => {
   const dispatch = useDispatch();
   const { list: doctors, loading } = useSelector((state) => state.doctors);
   const [activeTab, setActiveTab] = useState('pending');
-  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [modalType, setModalType] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
+  const [reason, setReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -48,12 +56,17 @@ const Doctors = () => {
     return acc;
   }, {});
 
+  const refreshList = () => {
+    dispatch(fetchDoctors(activeTab !== 'all' ? { status: activeTab } : {}));
+  };
+
+  // ── Approve ────────────────────────────────────────────────────────────────
   const handleApprove = async (id) => {
     setActionLoading(true);
     try {
       await api.put(`/v1/admin/doctors/${id}/approve`, { status: 'approved' });
       toast.success('Doctor approved successfully');
-      dispatch(fetchDoctors(activeTab !== 'all' ? { status: activeTab } : {}));
+      refreshList();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to approve doctor');
     } finally {
@@ -61,27 +74,45 @@ const Doctors = () => {
     }
   };
 
-  const handleRejectClick = (doctor) => {
-    setSelectedDoctor(doctor);
-    setShowRejectModal(true);
+  // ── Unsuspend ──────────────────────────────────────────────────────────────
+  const handleUnsuspend = async (id) => {
+    setActionLoading(true);
+    try {
+      await api.put(`/v1/admin/doctors/${id}/unsuspend`);
+      toast.success('Doctor reinstated successfully');
+      refreshList();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to reinstate doctor');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
+  // ── Open modals ────────────────────────────────────────────────────────────
+  const openModal = (type, doctor) => {
+    setModalType(type);
+    setSelectedDoctor(doctor);
+    setReason('');
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+    setSelectedDoctor(null);
+    setReason('');
+  };
+
+  // ── Reject confirm ─────────────────────────────────────────────────────────
   const handleRejectConfirm = async () => {
-    if (!rejectReason.trim()) {
-      toast.error('Please provide a reason');
-      return;
-    }
+    if (!reason.trim()) { toast.error('Please provide a reason'); return; }
     setActionLoading(true);
     try {
       await api.put(`/v1/admin/doctors/${selectedDoctor._id}/reject`, {
         status: 'rejected',
-        reason: rejectReason,
+        reason,
       });
       toast.success('Doctor rejected');
-      setShowRejectModal(false);
-      setRejectReason('');
-      setSelectedDoctor(null);
-      dispatch(fetchDoctors(activeTab !== 'all' ? { status: activeTab } : {}));
+      closeModal();
+      refreshList();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to reject doctor');
     } finally {
@@ -89,10 +120,37 @@ const Doctors = () => {
     }
   };
 
-  const closeModal = () => {
-    setShowRejectModal(false);
-    setRejectReason('');
-    setSelectedDoctor(null);
+  // ── Suspend confirm ────────────────────────────────────────────────────────
+  const handleSuspendConfirm = async () => {
+    if (!reason.trim()) { toast.error('Please provide a suspension reason'); return; }
+    setActionLoading(true);
+    try {
+      await api.put(`/v1/admin/doctors/${selectedDoctor._id}/suspend`, { reason });
+      toast.success('Doctor suspended');
+      closeModal();
+      refreshList();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to suspend doctor');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ── Permanent remove confirm ───────────────────────────────────────────────
+  const handleRemoveConfirm = async () => {
+    setActionLoading(true);
+    try {
+      await api.delete(`/v1/admin/doctors/${selectedDoctor._id}/permanent`, {
+        data: { reason },
+      });
+      toast.success('Doctor permanently removed');
+      closeModal();
+      refreshList();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to remove doctor');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const getDoctorName = (doc) =>
@@ -195,9 +253,18 @@ const Doctors = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{formatDate(doctor.createdAt)}</td>
-                    <td className="px-6 py-4"><StatusBadge status={doctor.status} /></td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                      <StatusBadge status={doctor.status} />
+                      {doctor.status === 'suspended' && doctor.suspensionReason && (
+                        <p className="text-xs text-orange-500 mt-1 max-w-[140px] truncate" title={doctor.suspensionReason}>
+                          {doctor.suspensionReason}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
+
+                        {/* Pending → Approve / Reject */}
                         {doctor.status === 'pending' && (
                           <>
                             <button
@@ -208,7 +275,7 @@ const Doctors = () => {
                               <Check className="w-3.5 h-3.5" /> Approve
                             </button>
                             <button
-                              onClick={() => handleRejectClick(doctor)}
+                              onClick={() => openModal(MODAL.REJECT, doctor)}
                               disabled={actionLoading}
                               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors disabled:opacity-50"
                             >
@@ -216,6 +283,47 @@ const Doctors = () => {
                             </button>
                           </>
                         )}
+
+                        {/* Approved → Suspend / Permanently Remove */}
+                        {doctor.status === 'approved' && (
+                          <>
+                            <button
+                              onClick={() => openModal(MODAL.SUSPEND, doctor)}
+                              disabled={actionLoading}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+                            >
+                              <PauseCircle className="w-3.5 h-3.5" /> Suspend
+                            </button>
+                            <button
+                              onClick={() => openModal(MODAL.REMOVE, doctor)}
+                              disabled={actionLoading}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Remove
+                            </button>
+                          </>
+                        )}
+
+                        {/* Suspended → Reinstate / Permanently Remove */}
+                        {doctor.status === 'suspended' && (
+                          <>
+                            <button
+                              onClick={() => handleUnsuspend(doctor._id)}
+                              disabled={actionLoading}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                            >
+                              <PlayCircle className="w-3.5 h-3.5" /> Reinstate
+                            </button>
+                            <button
+                              onClick={() => openModal(MODAL.REMOVE, doctor)}
+                              disabled={actionLoading}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Remove
+                            </button>
+                          </>
+                        )}
+
                       </div>
                     </td>
                   </tr>
@@ -226,8 +334,8 @@ const Doctors = () => {
         )}
       </div>
 
-      {/* Reject Modal */}
-      <Modal isOpen={showRejectModal} onClose={closeModal} title="Reject Doctor Application" size="sm">
+      {/* ── Reject Modal ─────────────────────────────────────────────────────── */}
+      <Modal isOpen={modalType === MODAL.REJECT} onClose={closeModal} title="Reject Doctor Application" size="sm">
         <div className="space-y-4">
           <p className="text-sm text-slate-600">
             Rejecting application from{' '}
@@ -236,8 +344,8 @@ const Doctors = () => {
           <div>
             <label className="label">Reason for rejection</label>
             <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
               className="input"
               rows={3}
               placeholder="Please provide a reason..."
@@ -251,6 +359,74 @@ const Doctors = () => {
               className="flex-1 px-4 py-2 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl hover:from-rose-600 hover:to-red-700 transition-all font-medium disabled:opacity-50"
             >
               {actionLoading ? 'Rejecting...' : 'Reject'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Suspend Modal ─────────────────────────────────────────────────────── */}
+      <Modal isOpen={modalType === MODAL.SUSPEND} onClose={closeModal} title="Suspend Doctor" size="sm">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+            <PauseCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-amber-800">
+              <span className="font-semibold">Dr. {getDoctorName(selectedDoctor || {})}</span> will be temporarily
+              suspended. Their profile will be hidden from patients and they won't be able to accept appointments.
+              You can reinstate them at any time.
+            </p>
+          </div>
+          <div>
+            <label className="label">Reason for suspension</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="input"
+              rows={3}
+              placeholder="e.g. Reported misconduct under investigation..."
+            />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={closeModal} className="btn btn-secondary flex-1">Cancel</button>
+            <button
+              onClick={handleSuspendConfirm}
+              disabled={actionLoading}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all font-medium disabled:opacity-50"
+            >
+              {actionLoading ? 'Suspending...' : 'Suspend Doctor'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Permanent Remove Modal ────────────────────────────────────────────── */}
+      <Modal isOpen={modalType === MODAL.REMOVE} onClose={closeModal} title="Permanently Remove Doctor" size="sm">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
+            <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-red-800">
+              This will <span className="font-semibold">permanently delete</span> Dr.{' '}
+              <span className="font-semibold">{getDoctorName(selectedDoctor || {})}'s</span> profile and user
+              account. This action <span className="font-semibold">cannot be undone</span>.
+            </p>
+          </div>
+          <div>
+            <label className="label">Reason (optional)</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="input"
+              rows={3}
+              placeholder="e.g. License revoked, fraudulent credentials..."
+            />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={closeModal} className="btn btn-secondary flex-1">Cancel</button>
+            <button
+              onClick={handleRemoveConfirm}
+              disabled={actionLoading}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all font-medium disabled:opacity-50"
+            >
+              {actionLoading ? 'Removing...' : 'Permanently Remove'}
             </button>
           </div>
         </div>

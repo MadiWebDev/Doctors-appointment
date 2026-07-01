@@ -54,7 +54,7 @@ const DoctorProfile = () => {
     <div>
       <Link
         to="/patient/doctors"
-        className="text-slate-600 hover:text-slate-900 mb-6 inline-block"
+        className="text-foreground mb-6 inline-block"
       >
         ← Back to doctors
       </Link>
@@ -68,7 +68,7 @@ const DoctorProfile = () => {
             size="xl"
           />
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
               Dr. {doctor.firstName} {doctor.lastName}
             </h1>
             <p className="text-lg text-slate-600 mb-4">{doctor.specialization}</p>
@@ -113,14 +113,14 @@ const DoctorProfile = () => {
       {/* Bio */}
       {doctor.bio && (
         <div className="card p-6 mb-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">About</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-4">About</h2>
           <p className="text-slate-600">{doctor.bio}</p>
         </div>
       )}
 
       {/* Booking */}
       <div className="card p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">
+        <h2 className="text-xl font-semibold text-foreground mb-4">
           Book an Appointment
         </h2>
 
@@ -144,7 +144,7 @@ const DoctorProfile = () => {
               <p className="text-slate-500">No available slots for this date</p>
             ) : (
               <>
-                <h3 className="font-medium text-slate-900 mb-4">
+                <h3 className="font-medium text-foreground mb-4">
                   Available Time Slots
                 </h3>
                 <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">

@@ -369,6 +369,146 @@ export const verifyDoctor = catchAsyncError(async (req, res, next) => {
   });
 });
 
+// Suspend Doctor (Admin)
+export const suspendDoctor = catchAsyncError(async (req, res, next) => {
+  const { reason } = req.body;
+
+  if (!reason || !reason.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "A suspension reason is required",
+    });
+  }
+
+  const doctor = await Doctor.findById(req.params.id);
+  if (!doctor) {
+    return res.status(404).json({ success: false, message: "Doctor not found" });
+  }
+
+  if (doctor.status !== "approved") {
+    return res.status(400).json({
+      success: false,
+      message: "Only approved doctors can be suspended",
+    });
+  }
+
+  doctor.status = "suspended";
+  doctor.suspensionReason = reason.trim();
+  doctor.suspendedBy = req.user._id;
+  doctor.suspendedAt = new Date();
+  await doctor.save();
+
+  await AuditLog.create({
+    userId: req.user._id,
+    username: req.user.name,
+    userRole: req.user.role,
+    action: "doctor_suspend",
+    actionType: "update",
+    resourceType: "doctor",
+    resourceId: doctor._id,
+    details: {
+      doctorName: `${doctor.firstName} ${doctor.lastName}`,
+      suspensionReason: reason,
+    },
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent"),
+    method: req.method,
+    endpoint: req.originalUrl,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Doctor suspended successfully",
+    doctor,
+  });
+});
+
+// Unsuspend (Reinstate) Doctor (Admin)
+export const unsuspendDoctor = catchAsyncError(async (req, res, next) => {
+  const doctor = await Doctor.findById(req.params.id);
+  if (!doctor) {
+    return res.status(404).json({ success: false, message: "Doctor not found" });
+  }
+
+  if (doctor.status !== "suspended") {
+    return res.status(400).json({
+      success: false,
+      message: "Doctor is not currently suspended",
+    });
+  }
+
+  doctor.status = "approved";
+  doctor.suspensionReason = undefined;
+  doctor.suspendedBy = undefined;
+  doctor.suspendedAt = undefined;
+  await doctor.save();
+
+  await AuditLog.create({
+    userId: req.user._id,
+    username: req.user.name,
+    userRole: req.user.role,
+    action: "doctor_unsuspend",
+    actionType: "update",
+    resourceType: "doctor",
+    resourceId: doctor._id,
+    details: {
+      doctorName: `${doctor.firstName} ${doctor.lastName}`,
+    },
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent"),
+    method: req.method,
+    endpoint: req.originalUrl,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Doctor reinstated successfully",
+    doctor,
+  });
+});
+
+// Permanently Remove Doctor (Admin)
+export const permanentRemoveDoctor = catchAsyncError(async (req, res, next) => {
+  const { reason } = req.body;
+
+  const doctor = await Doctor.findById(req.params.id);
+  if (!doctor) {
+    return res.status(404).json({ success: false, message: "Doctor not found" });
+  }
+
+  const doctorName = `${doctor.firstName} ${doctor.lastName}`;
+  const doctorUserId = doctor.user;
+
+  // Delete the doctor profile
+  await doctor.deleteOne();
+
+  // Also remove the linked user account so they can't log back in as a doctor
+  await User.findByIdAndDelete(doctorUserId);
+
+  await AuditLog.create({
+    userId: req.user._id,
+    username: req.user.name,
+    userRole: req.user.role,
+    action: "doctor_permanent_remove",
+    actionType: "delete",
+    resourceType: "doctor",
+    resourceId: req.params.id,
+    details: {
+      doctorName,
+      reason: reason || "No reason provided",
+    },
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent"),
+    method: req.method,
+    endpoint: req.originalUrl,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Doctor permanently removed from the platform",
+  });
+});
+
 // Get System Logs (Admin)
 export const getSystemLogs = catchAsyncError(async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;

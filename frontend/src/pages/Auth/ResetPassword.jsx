@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Stethoscope, ArrowLeft } from 'lucide-react';
@@ -12,7 +12,11 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
+
+  // Pre-fill email if navigated from ForgotPassword page
+  const prefillEmail = location.state?.email || '';
 
   const {
     register,
@@ -20,6 +24,7 @@ const ResetPassword = () => {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { email: prefillEmail },
   });
 
   const onSubmit = async (data) => {
