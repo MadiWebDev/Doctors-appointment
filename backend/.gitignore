@@ -1,7 +1,56 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Environment variables
 .env
-.DS_Store
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Build output
+dist/
+build/
+
+# Logs
+logs/
 *.log
-coverage
-.nyc_output
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage & testing
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+*.suo
+*.sw?
+
+# Uploads / temp files
+uploads/
+tmp/
+temp/
+
+# PM2
+.pm2/
+
+# Package manager locks (keep only one — remove if you commit lock files)
+# package-lock.json
+# yarn.lock
+
+# Secrets / certs
+*.pem
+*.key
+*.cert
+*.p12
+
+# Redis dump
+dump.rdb
