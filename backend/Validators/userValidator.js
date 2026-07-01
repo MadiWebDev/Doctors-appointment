@@ -6,6 +6,7 @@ export const registerSchema = z.object({
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must not exceed 50 characters"),
   email: z.string().email("Invalid email format"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -14,7 +15,7 @@ export const registerSchema = z.object({
       "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
     ),
   confirmPassword: z.string(),
-  role: z.enum(["user", "doctor"]).optional(),
+  role: z.enum(["patient", "doctor", "admin"]).optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -54,7 +55,9 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  password: z
+  email: z.string().email("Invalid email format"),
+  otp: z.string().min(6, "OTP must be 6 digits").max(6),
+  newPassword: z
     .string()
     .min(8, "Password must be at least 8 characters")
     .regex(
@@ -62,11 +65,11 @@ export const resetPasswordSchema = z.object({
       "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
     ),
   confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
+}).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
 export const updateRoleSchema = z.object({
-  role: z.enum(["user", "doctor", "admin", "super_admin"]),
+  role: z.enum(["patient", "doctor", "admin", "super_admin"]),
 });

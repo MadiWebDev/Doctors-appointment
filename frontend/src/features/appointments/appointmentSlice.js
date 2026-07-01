@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
 
-// Async thunks
+// ── Patient thunks ───────────────────────────────────────────────────────────
+
 export const fetchMyAppointments = createAsyncThunk(
   'appointments/fetchMyAppointments',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get('/appointments/my', { params });
+      const response = await api.get('/v1/appointment/my-appointments', { params });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch appointments');
@@ -18,7 +19,7 @@ export const bookAppointment = createAsyncThunk(
   'appointments/bookAppointment',
   async (appointmentData, { rejectWithValue }) => {
     try {
-      const response = await api.post('/appointments', appointmentData);
+      const response = await api.post('/v1/appointment/book', appointmentData);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to book appointment');
@@ -30,10 +31,29 @@ export const cancelAppointment = createAsyncThunk(
   'appointments/cancelAppointment',
   async ({ id, reason }, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/appointments/${id}/cancel`, { reason });
+      const response = await api.put(`/v1/appointment/${id}/cancel`, { reason });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to cancel appointment');
+    }
+  }
+);
+
+// ── Doctor thunks ────────────────────────────────────────────────────────────
+
+export const fetchDoctorAppointments = createAsyncThunk(
+  'appointments/fetchDoctorAppointments',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      // Use dedicated doctor endpoint — resolves doctorId server-side from the logged-in user
+      const { doctorId, ...rest } = params;
+      const url = doctorId
+        ? `/v1/appointment/doctor/${doctorId}`
+        : '/v1/appointment/my-doctor-appointments';
+      const response = await api.get(url, { params: rest });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch doctor appointments');
     }
   }
 );
@@ -42,7 +62,7 @@ export const confirmAppointment = createAsyncThunk(
   'appointments/confirmAppointment',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/appointments/${id}/confirm`);
+      const response = await api.put(`/v1/appointment/${id}/confirm`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to confirm appointment');
@@ -54,7 +74,10 @@ export const completeAppointment = createAsyncThunk(
   'appointments/completeAppointment',
   async ({ id, medicalNotes, prescription }, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/appointments/${id}/complete`, { medicalNotes, prescription });
+      const response = await api.put(`/v1/appointment/${id}/complete`, {
+        doctorNotes: medicalNotes,
+        prescription,
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to complete appointment');
@@ -66,7 +89,10 @@ export const addMedicalNotes = createAsyncThunk(
   'appointments/addMedicalNotes',
   async ({ id, medicalNotes, prescription }, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/appointments/${id}/medical-notes`, { medicalNotes, prescription });
+      const response = await api.put(`/v1/appointment/${id}/complete`, {
+        doctorNotes: medicalNotes,
+        prescription,
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to add medical notes');
@@ -74,29 +100,21 @@ export const addMedicalNotes = createAsyncThunk(
   }
 );
 
-export const fetchDoctorAppointments = createAsyncThunk(
-  'appointments/fetchDoctorAppointments',
-  async (params = {}, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/appointments/doctor', { params });
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch doctor appointments');
-    }
-  }
-);
+// ── Admin thunk ──────────────────────────────────────────────────────────────
 
 export const fetchAdminAppointments = createAsyncThunk(
   'appointments/fetchAdminAppointments',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get('/appointments/admin', { params });
+      const response = await api.get('/v1/appointment/admin/all', { params });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch appointments');
     }
   }
 );
+
+// ── Slice ────────────────────────────────────────────────────────────────────
 
 const initialState = {
   list: [],
@@ -118,8 +136,8 @@ const appointmentSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // ── fetchMyAppointments ──
     builder
-      // Fetch My Appointments
       .addCase(fetchMyAppointments.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -127,90 +145,101 @@ const appointmentSlice = createSlice({
       .addCase(fetchMyAppointments.fulfilled, (state, action) => {
         state.loading = false;
         state.list = action.payload.appointments || [];
-        state.total = action.payload.total || 0;
+        state.total = action.payload.pagination?.totalAppointments || action.payload.total || 0;
       })
       .addCase(fetchMyAppointments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Book Appointment
+
+    // ── bookAppointment ──
       .addCase(bookAppointment.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(bookAppointment.fulfilled, (state, action) => {
         state.loading = false;
-        state.list.unshift(action.payload.appointment);
+        const apt = action.payload.appointment;
+        if (apt) state.list.unshift(apt);
       })
       .addCase(bookAppointment.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Cancel Appointment
+
+    // ── cancelAppointment ──
       .addCase(cancelAppointment.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(cancelAppointment.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.list.findIndex((apt) => apt._id === action.payload.appointment._id);
-        if (index !== -1) {
-          state.list[index] = action.payload.appointment;
+        const updated = action.payload.appointment;
+        if (updated) {
+          const index = state.list.findIndex((apt) => apt._id === updated._id);
+          if (index !== -1) state.list[index] = updated;
         }
       })
       .addCase(cancelAppointment.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Confirm Appointment
+
+    // ── confirmAppointment ──
       .addCase(confirmAppointment.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(confirmAppointment.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.list.findIndex((apt) => apt._id === action.payload.appointment._id);
-        if (index !== -1) {
-          state.list[index] = action.payload.appointment;
+        const updated = action.payload.appointment;
+        if (updated) {
+          const index = state.list.findIndex((apt) => apt._id === updated._id);
+          if (index !== -1) state.list[index] = updated;
         }
       })
       .addCase(confirmAppointment.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Complete Appointment
+
+    // ── completeAppointment ──
       .addCase(completeAppointment.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(completeAppointment.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.list.findIndex((apt) => apt._id === action.payload.appointment._id);
-        if (index !== -1) {
-          state.list[index] = action.payload.appointment;
+        const updated = action.payload.appointment;
+        if (updated) {
+          const index = state.list.findIndex((apt) => apt._id === updated._id);
+          if (index !== -1) state.list[index] = updated;
         }
       })
       .addCase(completeAppointment.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Add Medical Notes
+
+    // ── addMedicalNotes ──
       .addCase(addMedicalNotes.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(addMedicalNotes.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.list.findIndex((apt) => apt._id === action.payload.appointment._id);
-        if (index !== -1) {
-          state.list[index] = action.payload.appointment;
+        const updated = action.payload.appointment;
+        if (updated) {
+          const index = state.list.findIndex((apt) => apt._id === updated._id);
+          if (index !== -1) state.list[index] = updated;
         }
       })
       .addCase(addMedicalNotes.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Fetch Doctor Appointments
+
+    // ── fetchDoctorAppointments ──
       .addCase(fetchDoctorAppointments.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -218,13 +247,14 @@ const appointmentSlice = createSlice({
       .addCase(fetchDoctorAppointments.fulfilled, (state, action) => {
         state.loading = false;
         state.list = action.payload.appointments || [];
-        state.total = action.payload.total || 0;
+        state.total = action.payload.pagination?.totalAppointments || action.payload.total || 0;
       })
       .addCase(fetchDoctorAppointments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Fetch Admin Appointments
+
+    // ── fetchAdminAppointments ──
       .addCase(fetchAdminAppointments.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -232,7 +262,7 @@ const appointmentSlice = createSlice({
       .addCase(fetchAdminAppointments.fulfilled, (state, action) => {
         state.loading = false;
         state.list = action.payload.appointments || [];
-        state.total = action.payload.total || 0;
+        state.total = action.payload.pagination?.totalAppointments || action.payload.total || 0;
       })
       .addCase(fetchAdminAppointments.rejected, (state, action) => {
         state.loading = false;
@@ -240,6 +270,12 @@ const appointmentSlice = createSlice({
       });
   },
 });
+
+// ── Selectors ─────────────────────────────────────────────────────────────────
+export const selectAppointments = (state) => state.appointments.list;
+export const selectAppointmentsLoading = (state) => state.appointments.loading;
+export const selectAppointmentsTotal = (state) => state.appointments.total;
+export const selectAppointmentsError = (state) => state.appointments.error;
 
 export const { clearError, setSelected } = appointmentSlice.actions;
 export default appointmentSlice.reducer;

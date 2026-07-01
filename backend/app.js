@@ -20,7 +20,7 @@ import slotRoutesV1 from "./Routes/v1/slotRoutes.js";
 import specializationRoutesV1 from "./Routes/v1/specializationRoutes.js";
 import adminAnalyticsRoutesV1 from "./Routes/v1/adminAnalyticsRoutes.js";
 
-const app = express();
+const app = express();  
 
 // Security middleware 
 app.use(helmet({ 

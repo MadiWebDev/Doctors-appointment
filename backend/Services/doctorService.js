@@ -45,7 +45,7 @@ export class DoctorService {
    * Get doctor by ID
    */
   async getDoctorById(doctorId) {
-    const doctor = await Doctor.findById(doctorId).populate("user", "username email");
+    const doctor = await Doctor.findById(doctorId).populate("user", "name email");
     if (!doctor) {
       throw new ErrorHandler("Doctor not found", 404);
     }
@@ -56,7 +56,7 @@ export class DoctorService {
    * Get doctor by user ID
    */
   async getDoctorByUserId(userId) {
-    const doctor = await Doctor.findOne({ user: userId }).populate("user", "username email");
+    const doctor = await Doctor.findOne({ user: userId }).populate("user", "name email");
     if (!doctor) {
       throw new ErrorHandler("Doctor profile not found", 404);
     }
@@ -67,7 +67,13 @@ export class DoctorService {
    * Get all doctors with filters and pagination
    */
   async getAllDoctors(filters = {}, page = 1, limit = 10) {
-    const query = { status: "approved" };
+    // If a specific status is requested (admin use), use it; otherwise default to approved
+    const query = {};
+    if (filters.status) {
+      query.status = filters.status;
+    } else {
+      query.status = "approved";
+    }
 
     // Apply filters
     if (filters.specialization) {
@@ -146,7 +152,7 @@ export class DoctorService {
         runValidators: true,
         useFindAndModify: false,
       }
-    ).populate("user", "username email");
+    ).populate("user", "name email");
 
     return updatedDoctor;
   }

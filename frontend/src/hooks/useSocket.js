@@ -1,15 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector } from 'react-redux';
+import { selectIsLoggedIn, selectUser } from '../features/auth/authSlice';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
 
 export const useSocket = (eventHandlers = {}) => {
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const user = useSelector(selectUser);
   const socketRef = useRef(null);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    if (!isLoggedIn || !user) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -17,24 +19,16 @@ export const useSocket = (eventHandlers = {}) => {
       return;
     }
 
-    // Get token from localStorage (assuming it's stored there)
     const token = localStorage.getItem('accessToken');
+    if (!token) return;
 
-    if (!token) {
-      return;
-    }
-
-    // Initialize socket connection
     socketRef.current = io(SOCKET_URL, {
-      auth: {
-        token,
-      },
+      auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
     });
 
-    // Connection event handlers
     socketRef.current.on('connect', () => {
       console.log('Socket connected:', socketRef.current.id);
     });
@@ -44,7 +38,7 @@ export const useSocket = (eventHandlers = {}) => {
     });
 
     socketRef.current.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      console.error('Socket connection error:', error.message);
     });
 
     // Register custom event handlers
@@ -52,16 +46,17 @@ export const useSocket = (eventHandlers = {}) => {
       socketRef.current.on(event, handler);
     });
 
-    // Cleanup on unmount
     return () => {
       if (socketRef.current) {
         Object.entries(eventHandlers).forEach(([event, handler]) => {
           socketRef.current.off(event, handler);
         });
         socketRef.current.disconnect();
+        socketRef.current = null;
       }
     };
-  }, [isAuthenticated, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, user?._id]);
 
   return socketRef.current;
 };

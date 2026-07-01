@@ -1,20 +1,18 @@
 import { format, parseISO } from 'date-fns';
 
 export const SPECIALIZATIONS = [
-  'Cardiology',
-  'Dermatology',
-  'Endocrinology',
-  'Gastroenterology',
-  'General Practice',
-  'Neurology',
-  'Oncology',
-  'Orthopedics',
-  'Pediatrics',
-  'Psychiatry',
-  'Pulmonology',
-  'Radiology',
-  'Surgery',
-  'Urology',
+  'General Physician',
+  'Cardiologist',
+  'Dermatologist',
+  'Neurologist',
+  'Pediatrician',
+  'Orthopedic',
+  'Gynecologist',
+  'Ophthalmologist',
+  'Dentist',
+  'Psychiatrist',
+  'Urologist',
+  'Other',
 ];
 
 export const formatDate = (date) => {

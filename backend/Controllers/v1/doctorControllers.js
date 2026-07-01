@@ -43,6 +43,7 @@ export const getMyDoctorProfile = catchAsyncError(async (req, res, next) => {
 // Get All Doctors with Filters
 export const getAllDoctors = catchAsyncError(async (req, res, next) => {
   const filters = {
+    status: req.query.status,          // admin can pass status=pending/approved/rejected/all
     specialization: req.query.specialization,
     city: req.query.city,
     minRating: req.query.minRating,
@@ -51,6 +52,9 @@ export const getAllDoctors = catchAsyncError(async (req, res, next) => {
     coordinates: req.query.coordinates,
     maxDistance: req.query.maxDistance,
   };
+
+  // "all" means no status filter
+  if (filters.status === 'all') filters.status = undefined;
 
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;

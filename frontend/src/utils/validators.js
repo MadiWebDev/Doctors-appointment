@@ -41,35 +41,20 @@ export const doctorStep2Schema = z.object({
   qualifications: z.string().min(1, 'Qualifications are required'),
 });
 
-// In your validators.js file
 export const doctorStep3Schema = z.object({
-  licenseDocument: z
-    .any()
-    .refine((files) => files && files.length > 0, {
-      message: 'Please upload your license document',
-    })
-    .refine((files) => {
-      if (!files || files.length === 0) return true;
-      const file = files[0];
-      return file.size <= 5 * 1024 * 1024;
-    }, {
-      message: 'File size must be less than 5MB',
-    })
-    .refine((files) => {
-      if (!files || files.length === 0) return true;
-      const file = files[0];
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-      return validTypes.includes(file.type);
-    }, {
-      message: 'Please upload a PDF, JPG, or PNG file',
-    }),
-  street: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
-  zipCode: z.string().optional(),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
+  street:   z.string().optional(),
+  city:     z.string().optional(),
+  state:    z.string().optional(),
+  country:  z.string().optional(),
+  zipCode:  z.string().optional(),
+  latitude: z.preprocess(
+    (val) => (val === '' || (typeof val === 'number' && isNaN(val)) ? undefined : val),
+    z.number().optional()
+  ),
+  longitude: z.preprocess(
+    (val) => (val === '' || (typeof val === 'number' && isNaN(val)) ? undefined : val),
+    z.number().optional()
+  ),
 });
 
 export const otpSchema = z.object({

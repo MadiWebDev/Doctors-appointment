@@ -12,9 +12,12 @@ export const getUserNotifications = catchAsyncError(async (req, res, next) => {
   const limit = parseInt(req.query.limit) || 20;
 
   const result = await notificationService.getUserNotifications(req.user._id, filters, page, limit);
+
   res.status(200).json({
     success: true,
-    ...result,
+    notifications: result.notifications,
+    unreadCount: result.pagination.unreadCount,
+    pagination: result.pagination,
   });
 });
 

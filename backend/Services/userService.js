@@ -149,7 +149,7 @@ export class UserService {
       );
     }
 
-    user.isEmailVerified = true;
+    user.isVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpire = undefined;
 
@@ -190,7 +190,7 @@ export class UserService {
       throw new ErrorHandler("User not found", 404);
     }
 
-    if (user.isEmailVerified) {
+    if (user.isVerified) {
       throw new ErrorHandler("Email is already verified", 400);
     }
 

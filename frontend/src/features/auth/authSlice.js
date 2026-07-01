@@ -33,11 +33,9 @@ export const registerPatient = createAsyncThunk(
 
 export const registerDoctor = createAsyncThunk(
   'auth/registerDoctor',
-  async (formData, { rejectWithValue }) => {
+  async (doctorData, { rejectWithValue }) => {
     try {
-      const response = await api.post('/v1/user/register/doctor', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/v1/user/register/doctor', doctorData);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Registration failed');

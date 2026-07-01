@@ -140,7 +140,7 @@ export class AppointmentService {
    */
   async getAppointmentById(appointmentId) {
     const appointment = await Appointment.findById(appointmentId)
-      .populate("patient", "username email phone")
+      .populate("patient", "name email phone")
       .populate("doctor", "firstName lastName specialization consultationFee");
 
     if (!appointment) {
@@ -196,7 +196,7 @@ export class AppointmentService {
 
     const skip = (page - 1) * limit;
     const appointments = await Appointment.find(query)
-      .populate("patient", "username email phone")
+      .populate("patient", "name email phone")
       .sort({ appointmentDate: -1, appointmentTime: -1 })
       .skip(skip)
       .limit(limit);

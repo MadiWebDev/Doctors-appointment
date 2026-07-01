@@ -1,160 +1,157 @@
 import userService from "../../Services/userService.js";
 import sendToken from "../../utilis/jwtToken.js";
 import catchAsyncError from "../../Middleware/catchAsyncError.js";
-import { registerSchema, loginSchema, updateProfileSchema, updatePasswordSchema, forgotPasswordSchema, resetPasswordSchema, updateRoleSchema } from "../../Validators/userValidator.js";
+import { registerSchema, loginSchema, updateProfileSchema, updatePasswordSchema, forgotPasswordSchema, updateRoleSchema } from "../../Validators/userValidator.js";
 import Doctor from "../../Models/doctorModels.js";
-import { uploadDocument, uploadToCloudinary } from "../../utilis/cloudinary.js";
 
 //*** Register User  **//
 export const registerUser = catchAsyncError(async (req, res, next) => {
   // Validate input with Zod
   const validationResult = registerSchema.safeParse(req.body);
   if (!validationResult.success) {
-    const errors = validationResult.error.errors.map(err => err.message);
+    const errors = validationResult.error.errors.map((err) => err.message);
     return res.status(400).json({
       success: false,
-      message: "Validation failed",
-      errors
+      message: errors[0], // send the first error as the top-level message
+      errors,
     });
   }
 
-  const user = await userService.registerUser(validationResult.data);
-  sendToken(user, 201, res);
+  try {
+    const user = await userService.registerUser(validationResult.data);
+    sendToken(user, 201, res);
+  } catch (error) {
+    // Surface mongoose validation errors and known service errors cleanly
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({ success: false, message: messages[0], errors: messages });
+    }
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0] || "field";
+      return res.status(400).json({ success: false, message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists` });
+    }
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Registration failed",
+    });
+  }
 });
 
 //*** Register Doctor  **//
 export const registerDoctor = catchAsyncError(async (req, res, next) => {
-  try {
-    console.log("Doctor registration request received");
-    console.log("Request body keys:", Object.keys(req.body));
-    console.log("File present:", !!req.file);
+  const User = await import("../../Models/userModels.js").then((m) => m.default);
+  let createdUser = null;
 
+  try {
     const {
-      name,
-      email,
-      phone,
-      password,
-      confirmPassword,
-      licenseNumber,
-      specialization,
-      experience,
-      hospitalAffiliation,
-      consultationFee,
-      bio,
-      qualifications,
-      city, // Add these
-      state,
-      country,
-      zipCode,
-      street,
-      latitude, // Add these for location
-      longitude,
+      name, email, phone, password, confirmPassword,
+      licenseNumber, specialization, experience,
+      hospitalAffiliation, consultationFee, bio, qualifications,
+      street, city, state, country, zipCode, latitude, longitude,
     } = req.body;
 
-    console.log("Extracted fields:", { name, email, phone, licenseNumber, specialization });
+    // ── 1. Required field checks ──────────────────────────────────────────
+    const missing = [];
+    if (!name)              missing.push("name");
+    if (!email)             missing.push("email");
+    if (!phone)             missing.push("phone");
+    if (!password)          missing.push("password");
+    if (!confirmPassword)   missing.push("confirmPassword");
+    if (!licenseNumber)     missing.push("licenseNumber");
+    if (!specialization)    missing.push("specialization");
+    if (experience === undefined || experience === "") missing.push("experience");
+    if (!hospitalAffiliation) missing.push("hospitalAffiliation");
+    if (consultationFee === undefined || consultationFee === "") missing.push("consultationFee");
+    if (!bio)               missing.push("bio");
+    if (!qualifications)    missing.push("qualifications");
 
-    // Validate password match
+    if (missing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missing.join(", ")}`,
+        fields: missing,
+      });
+    }
+
+    // ── 2. Password validation ────────────────────────────────────────────
     if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
       return res.status(400).json({
         success: false,
-        message: "Passwords do not match",
+        message: "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
       });
     }
 
-    // Check if user already exists
-    const User = await import("../../Models/userModels.js").then(m => m.default);
-    const userExists = await User.findOne({ email }) || await Doctor.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
-    }
+    // ── 3. Duplicate checks ───────────────────────────────────────────────
+    const existingUser   = await User.findOne({ email });
+    const existingDoctor = await Doctor.findOne({ licenseNumber });
+    if (existingUser)   return res.status(400).json({ success: false, message: "An account with this email already exists" });
+    if (existingDoctor) return res.status(400).json({ success: false, message: "A doctor with this license number already exists" });
 
-    console.log("Creating user...");
-    // Create user with role "doctor"
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: "doctor",
-      phone,
-    });
-    console.log("User created successfully:", user._id);
+    // ── 4. Create User ────────────────────────────────────────────────────
+    createdUser = await User.create({ name, email, password, role: "doctor", phone });
 
-    // Handle license document upload
-    let licenseDocumentUrl = null;
-    if (req.file) {
-      try {
-        console.log("Uploading file to Cloudinary...");
-        const result = await uploadToCloudinary(req.file.buffer, {
-          folder: "doctor-appointments/license-documents",
-          allowed_formats: ["pdf", "jpg", "jpeg", "png"],
-          resource_type: "auto",
-        });
-        licenseDocumentUrl = result.secure_url;
-        console.log("File uploaded successfully:", licenseDocumentUrl);
-      } catch (uploadError) {
-        console.error("Cloudinary upload error:", uploadError);
-        // Don't fail registration if upload fails, just log it
-      }
-    }
-
-    // Parse qualifications from comma-separated string
-    const qualificationsArray = qualifications 
-      ? qualifications.split(',').map(q => q.trim()).filter(q => q.length > 0)
-      : [];
-
-    // Split name
-    const nameParts = name.trim().split(' ');
+    // ── 5. Create Doctor profile ──────────────────────────────────────────
+    const nameParts = name.trim().split(" ");
     const firstName = nameParts[0] || name;
-    const lastName = nameParts.slice(1).join(' ') || "";
+    const lastName  = nameParts.slice(1).join(" ") || "";
 
-    console.log("Creating doctor profile...");
-    const doctor = await Doctor.create({
-      user: user._id,
+    const qualificationsArray = qualifications
+      .split(",")
+      .map((q) => q.trim())
+      .filter((q) => q.length > 0);
+
+    await Doctor.create({
+      user:               createdUser._id,
       firstName,
       lastName,
       licenseNumber,
-      licenseDocument: licenseDocumentUrl,
       specialization,
-      experience: Number(experience) || 0,
+      experience:         Number(experience) || 0,
       hospitalAffiliation,
-      consultationFee: Number(consultationFee) || 0,
-      bio: bio || "",
-      qualifications: qualificationsArray,
+      consultationFee:    Number(consultationFee) || 0,
+      bio:                bio || "",
+      qualifications:     qualificationsArray,
       phone,
-      
-      // Add address
       address: {
-        street: street || "",
-        city: city || "",
-        state: state || "",
+        street:  street  || "",
+        city:    city    || "",
+        state:   state   || "",
         country: country || "",
         zipCode: zipCode || "",
       },
-      
-      // Add location (required)
       location: {
-        type: "Point",
-        coordinates: [
-          Number(longitude) || 0,
-          Number(latitude) || 0
-        ]
+        type:        "Point",
+        coordinates: [Number(longitude) || 0, Number(latitude) || 0],
       },
-      
       status: "pending",
     });
-    console.log("Doctor profile created successfully:", doctor._id);
 
-    sendToken(user, 201, res);
+    sendToken(createdUser, 201, res);
   } catch (error) {
+    // ── Rollback: delete User if Doctor.create failed ─────────────────────
+    if (createdUser) {
+      await createdUser.deleteOne().catch((e) =>
+        console.error("Rollback failed — orphaned user:", e.message)
+      );
+    }
+
     console.error("Doctor registration error:", error);
-    console.error("Error stack:", error.stack);
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Registration failed",
-    });
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({ success: false, message: messages[0] });
+    }
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0] || "field";
+      return res.status(400).json({ success: false, message: `${field} already exists` });
+    }
+
+    return res.status(500).json({ success: false, message: error.message || "Registration failed" });
   }
 });
 
@@ -178,50 +175,81 @@ export const logIn = catchAsyncError(async (req, res, next) => {
 
 //*** LogOut User ***/
 export const logOut = catchAsyncError(async (req, res, next) => {
-  res.cookie("accessToken", null, {
+  const cookieOptions = {
     expires: new Date(Date.now()),
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict"
-  });
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+  };
 
-  res.status(200).json({
-    success: true,
-    message: "logged Out Successfully",
-  });
+  res
+    .status(200)
+    .cookie("accessToken", null, cookieOptions)
+    .cookie("refreshToken", null, cookieOptions)
+    .json({
+      success: true,
+      message: "Logged out successfully",
+    });
 });
 
 //*** forget Password ***/
 export const forgetPassword = catchAsyncError(async (req, res, next) => {
-  // Validate input with Zod
   const validationResult = forgotPasswordSchema.safeParse(req.body);
   if (!validationResult.success) {
-    const errors = validationResult.error.errors.map(err => err.message);
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors
+    const errors = validationResult.error.errors.map((err) => err.message);
+    return res.status(400).json({ success: false, message: "Validation failed", errors });
+  }
+
+  const { email } = validationResult.data;
+
+  // Dynamically import to avoid circular dep
+  const User = await import("../../Models/userModels.js").then((m) => m.default);
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    // Return success regardless to prevent email enumeration
+    return res.status(200).json({
+      success: true,
+      message: `If an account with ${email} exists, a reset OTP has been sent.`,
     });
   }
 
-  const result = await userService.forgotPassword(validationResult.data.email);
-  res.status(200).json(result);
+  const otp = user.generateOTP();
+  await user.save({ validateBeforeSave: false });
+
+  const { default: sendEmail } = await import("../../utilis/sendEmail.js");
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Password Reset OTP - MediBook",
+      message: `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request a password reset, please ignore this email.`,
+    });
+  } catch (err) {
+    console.error("Forgot password email error:", err.message);
+    user.otp = undefined;
+    user.otpExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+    return res.status(500).json({ success: false, message: "Failed to send OTP email" });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `OTP sent to ${email}`,
+  });
 });
 
-//** get reset password **/
+//** get reset password (token-based — used by email links) **/
 export const resetPassword = catchAsyncError(async (req, res, next) => {
-  // Validate input with Zod
-  const validationResult = resetPasswordSchema.safeParse(req.body);
-  if (!validationResult.success) {
-    const errors = validationResult.error.errors.map(err => err.message);
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors
-    });
+  const { password, confirmPassword } = req.body;
+
+  if (!password || !confirmPassword) {
+    return res.status(400).json({ success: false, message: "Password and confirmation are required" });
   }
 
-  const { password, confirmPassword } = validationResult.data;
+  if (password !== confirmPassword) {
+    return res.status(400).json({ success: false, message: "Passwords do not match" });
+  }
+
   const user = await userService.resetPassword(req.params.token, password, confirmPassword);
   sendToken(user, 200, res);
 });
@@ -355,16 +383,121 @@ export const refreshToken = catchAsyncError(async (req, res, next) => {
     expires: new Date(Date.now() + cookieExpire),
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
   };
 
-  res.status(200)
+  res
+    .status(200)
     .cookie("accessToken", accessToken, accessTokenOptions)
     .json({
+      success: true,
+      user,
+      accessToken,
+    });
+});
+
+//** Send OTP **/
+export const sendOtp = catchAsyncError(async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
+  const User = await import("../../Models/userModels.js").then((m) => m.default);
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+
+  const otp = user.generateOTP();
+  await user.save({ validateBeforeSave: false });
+
+  const { default: sendEmail } = await import("../../utilis/sendEmail.js");
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "OTP Verification - MediBook",
+      message: `Your OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+    });
+  } catch (err) {
+    console.error("OTP email error:", err.message);
+  }
+
+  res.status(200).json({
     success: true,
-    user,
-    accessToken,
+    message: `OTP sent to ${email}`,
   });
+});
+
+//** Verify OTP **/
+export const verifyOtp = catchAsyncError(async (req, res, next) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ success: false, message: "Email and OTP are required" });
+  }
+
+  const crypto = await import("crypto");
+  const hashedOtp = crypto.default.createHash("sha256").update(otp).digest("hex");
+
+  const User = await import("../../Models/userModels.js").then((m) => m.default);
+  const user = await User.findOne({
+    email,
+    otp: hashedOtp,
+    otpExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+  }
+
+  user.isVerified = true;
+  user.otp = undefined;
+  user.otpExpire = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+    message: "Email verified successfully",
+  });
+});
+
+//** Reset Password via OTP (frontend flow) **/
+export const resetPasswordOtp = catchAsyncError(async (req, res, next) => {
+  const { email, otp, newPassword, confirmPassword } = req.body;
+
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Email, OTP, and new password are required",
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ success: false, message: "Passwords do not match" });
+  }
+
+  const crypto = await import("crypto");
+  const hashedOtp = crypto.default.createHash("sha256").update(otp).digest("hex");
+
+  const User = await import("../../Models/userModels.js").then((m) => m.default);
+  const user = await User.findOne({
+    email,
+    otp: hashedOtp,
+    otpExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+  }
+
+  user.password = newPassword;
+  user.otp = undefined;
+  user.otpExpire = undefined;
+  user.loginAttempts = 0;
+  user.lockUntil = undefined;
+  await user.save();
+
+  sendToken(user, 200, res);
 });
 
 //** Resend Verification Email **/

@@ -2,17 +2,20 @@ import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { Readable } from "stream";
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Lazy-configure Cloudinary — called at request time so env vars are already loaded.
+const configureCloudinary = () => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+};
 
 // Custom storage engine for Cloudinary
 const cloudinaryStorage = (options = {}) => {
   return {
     _handleFile: (req, file, cb) => {
+      configureCloudinary();
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: options.folder || "doctor-appointments",
@@ -83,6 +86,7 @@ export const uploadDocument = multer({
 
 // Helper function to upload buffer to Cloudinary
 export const uploadToCloudinary = async (buffer, options) => {
+  configureCloudinary();
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(options, (error, result) => {
       if (error) {
@@ -99,6 +103,7 @@ export const uploadToCloudinary = async (buffer, options) => {
 
 // Helper function to delete image from Cloudinary
 export const deleteFromCloudinary = async (publicId) => {
+  configureCloudinary();
   try {
     await cloudinary.uploader.destroy(publicId);
   } catch (error) {

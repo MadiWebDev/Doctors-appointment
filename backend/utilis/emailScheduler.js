@@ -25,7 +25,11 @@ const send24HourReminder = async () => {
       'remindersSent.twentyFourHour': false,
     })
       .populate('patient', 'email name')
-      .populate('doctor', 'firstName lastName email');
+      .populate({
+        path: 'doctor',
+        select: 'firstName lastName user',
+        populate: { path: 'user', select: 'email' },
+      });
 
     for (const appointment of appointments) {
       try {
@@ -50,7 +54,7 @@ const send24HourReminder = async () => {
 
         // Send email to doctor
         await sendEmail({
-          email: appointment.doctor.email,
+          email: appointment.doctor.user?.email,
           subject: 'Appointment Reminder - Tomorrow',
           message: `
             <h2>Appointment Reminder</h2>
@@ -100,7 +104,11 @@ const send1HourReminder = async () => {
       'remindersSent.oneHour': false,
     })
       .populate('patient', 'email name')
-      .populate('doctor', 'firstName lastName email');
+      .populate({
+        path: 'doctor',
+        select: 'firstName lastName user',
+        populate: { path: 'user', select: 'email' },
+      });
 
     for (const appointment of appointments) {
       try {

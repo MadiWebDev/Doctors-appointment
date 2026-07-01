@@ -1,43 +1,57 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 
+// Modes: 'light' | 'dark' | 'system'
 export const ThemeContext = createContext({
-  theme: 'light',
-  toggleTheme: () => {},
+  theme: 'system',      // stored preference
+  resolvedTheme: 'light', // what's actually applied right now
+  setTheme: () => {},
 });
 
-export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('light');
+function getSystemTheme() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 
+function applyTheme(resolved) {
+  const root = document.documentElement;
+  if (resolved === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+}
+
+export const ThemeProvider = ({ children }) => {
+  const [theme, setThemeState] = useState(() => {
+    return localStorage.getItem('theme') || 'system';
+  });
+
+  const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
+
+  // Apply on mount + whenever theme changes
   useEffect(() => {
-    // Check local storage or system preference on mount
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (savedTheme) {
-      setTheme(savedTheme);
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
+    applyTheme(resolvedTheme);
+  }, [resolvedTheme]);
+
+  // Keep in sync when system preference changes (only matters in 'system' mode)
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      if (theme === 'system') {
+        applyTheme(getSystemTheme());
       }
-    } else if (prefersDark) {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
-    }
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [theme]);
+
+  const setTheme = useCallback((newTheme) => {
+    setThemeState(newTheme);
+    localStorage.setItem('theme', newTheme);
+    applyTheme(newTheme === 'system' ? getSystemTheme() : newTheme);
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

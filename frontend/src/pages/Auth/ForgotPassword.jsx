@@ -2,11 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Stethoscope, ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { forgotPasswordSchema } from '../../utils/validators';
 import { useDispatch } from 'react-redux';
 import { forgotPassword } from '../../features/auth/authSlice';
 import toast from 'react-hot-toast';
+import { ThemeToggleCompact } from '../../Components/shared/ThemeToggle';
 
 const ForgotPassword = () => {
   const dispatch = useDispatch();
@@ -31,24 +32,27 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-950">
       <div className="w-full max-w-md">
-        <Link to="/login" className="inline-flex items-center text-slate-600 hover:text-slate-900 mb-6">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to login
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/login" className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to login
+          </Link>
+          <ThemeToggleCompact />
+        </div>
 
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-            <Stethoscope className="w-6 h-6 text-white" />
+            <img src='/sethoscope1.png' alt='sethoscope' />
           </div>
-          <span className="text-2xl font-bold text-slate-900">MediBook</span>
+          <span className="text-2xl font-bold text-slate-900 dark:text-white">MediBook</span>
         </div>
 
         {!isSubmitted ? (
           <>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Forgot password?</h2>
-            <p className="text-slate-600 mb-8">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Forgot password?</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-8">
               Enter your email address and we'll send you a link to reset your password.
             </p>
 
@@ -78,8 +82,8 @@ const ForgotPassword = () => {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Mail className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Check your email</h2>
-            <p className="text-slate-600 mb-6">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Check your email</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               We've sent a password reset link to your email address.
             </p>
             <Link to="/login" className="btn btn-primary">
@@ -89,7 +93,7 @@ const ForgotPassword = () => {
         )}
 
         <div className="mt-6 text-center">
-          <p className="text-slate-600">
+          <p className="text-slate-600 dark:text-slate-400">
             Remember your password?{' '}
             <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
               Sign in

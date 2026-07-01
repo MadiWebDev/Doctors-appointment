@@ -33,7 +33,7 @@ export class MessageService {
    */
   async getConversationById(conversationId) {
     const conversation = await Conversation.findById(conversationId)
-      .populate("participants.user", "username email")
+      .populate("participants.user", "name email")
       .populate("relatedAppointment");
     
     if (!conversation) {
@@ -51,7 +51,7 @@ export class MessageService {
       "participants.user": userId,
       isActive: true,
     })
-      .populate("participants.user", "username email")
+      .populate("participants.user", "name email")
       .populate("relatedAppointment")
       .sort({ updatedAt: -1 })
       .skip(skip)
@@ -133,8 +133,8 @@ export class MessageService {
       conversation: conversationId,
       isDeleted: false,
     })
-      .populate("sender", "username email")
-      .populate("recipient", "username email")
+      .populate("sender", "name email")
+      .populate("recipient", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

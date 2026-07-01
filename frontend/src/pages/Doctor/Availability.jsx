@@ -1,42 +1,91 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateAvailability, generateSlots, blockSlot } from '../../features/doctors/doctorSlice';
+import {
+  updateAvailability,
+  generateSlots,
+  blockSlot,
+  fetchMyDoctorProfile,
+} from '../../features/doctors/doctorSlice';
 import Spinner from '../../Components/shared/Spinner';
 import toast from 'react-hot-toast';
 
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_ABBR = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const generateTimeOptions = () => {
+  const options = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      options.push(
+        `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+      );
+    }
+  }
+  return options;
+};
+
+const TIME_OPTIONS = generateTimeOptions();
+
 const Availability = () => {
   const dispatch = useDispatch();
-  const { loading } = useSelector((state) => state.doctors);
+  const { myProfile, loading } = useSelector((state) => state.doctors);
+
   const [workingDays, setWorkingDays] = useState([true, true, true, true, true, false, false]);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [slotDuration, setSlotDuration] = useState(30);
-  const [blockedDates, setBlockedDates] = useState([]);
   const [newBlockedDate, setNewBlockedDate] = useState('');
 
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  // Load the doctor's current profile on mount
+  useEffect(() => {
+    dispatch(fetchMyDoctorProfile());
+  }, [dispatch]);
 
   const handleSaveAvailability = async () => {
-    try {
-      await dispatch(updateAvailability({
-        workingDays,
+    if (!myProfile?._id) {
+      toast.error('Doctor profile not loaded');
+      return;
+    }
+
+    // Build availability array matching the Doctor model shape
+    const availability = DAYS
+      .filter((_, i) => workingDays[i])
+      .map((day) => ({
+        day,
         startTime,
         endTime,
-        slotDuration,
-      })).unwrap();
+        isAvailable: true,
+      }));
+
+    try {
+      await dispatch(
+        updateAvailability({ doctorId: myProfile._id, availability })
+      ).unwrap();
       toast.success('Availability updated successfully');
     } catch (error) {
-      toast.error(error || 'Failed to update availability');
+      toast.error(typeof error === 'string' ? error : 'Failed to update availability');
     }
   };
 
   const handleGenerateSlots = async () => {
+    const selectedDayNames = DAYS.filter((_, i) => workingDays[i]);
+    if (selectedDayNames.length === 0) {
+      toast.error('Please select at least one working day');
+      return;
+    }
     try {
-      await dispatch(generateSlots({ days: 30 })).unwrap();
-      toast.success('Slots generated for next 30 days');
+      const result = await dispatch(
+        generateSlots({
+          workingDays: selectedDayNames,
+          startTime,
+          endTime,
+          slotDuration,
+        })
+      ).unwrap();
+      toast.success(`Generated ${result.count || 0} slots for next 30 days`);
     } catch (error) {
-      toast.error(error || 'Failed to generate slots');
+      toast.error(typeof error === 'string' ? error : 'Failed to generate slots');
     }
   };
 
@@ -46,29 +95,13 @@ const Availability = () => {
       return;
     }
     try {
-      await dispatch(blockSlot({ date: newBlockedDate })).unwrap();
-      setBlockedDates([...blockedDates, newBlockedDate]);
+      // Block all slots for the selected date by date (requires slotId; use date-based block)
+      await dispatch(blockSlot({ date: newBlockedDate, reason: 'Blocked by doctor' })).unwrap();
       setNewBlockedDate('');
       toast.success('Date blocked successfully');
     } catch (error) {
-      toast.error(error || 'Failed to block date');
+      toast.error(typeof error === 'string' ? error : 'Failed to block date');
     }
-  };
-
-  const handleRemoveBlockedDate = (date) => {
-    setBlockedDates(blockedDates.filter((d) => d !== date));
-    toast.success('Date unblocked');
-  };
-
-  const generateTimeOptions = () => {
-    const options = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        options.push(time);
-      }
-    }
-    return options;
   };
 
   return (
@@ -82,16 +115,18 @@ const Availability = () => {
         {/* Working Days */}
         <div className="card p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">Working Days</h2>
+
           <div className="grid grid-cols-7 gap-2 mb-6">
-            {days.map((day, index) => (
+            {DAY_ABBR.map((day, index) => (
               <button
                 key={day}
+                type="button"
                 onClick={() => {
-                  const newDays = [...workingDays];
-                  newDays[index] = !newDays[index];
-                  setWorkingDays(newDays);
+                  const updated = [...workingDays];
+                  updated[index] = !updated[index];
+                  setWorkingDays(updated);
                 }}
-                className={`p-3 rounded-lg font-medium transition-colors ${
+                className={`p-3 rounded-lg font-medium text-sm transition-colors ${
                   workingDays[index]
                     ? 'bg-primary-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -110,10 +145,8 @@ const Availability = () => {
                 onChange={(e) => setStartTime(e.target.value)}
                 className="input"
               >
-                {generateTimeOptions().map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
+                {TIME_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
@@ -124,27 +157,26 @@ const Availability = () => {
                 onChange={(e) => setEndTime(e.target.value)}
                 className="input"
               >
-                {generateTimeOptions().map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
+                {TIME_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="label">Slot Duration (minutes)</label>
               <div className="flex gap-4">
-                {[15, 30, 60].map((duration) => (
+                {[15, 30, 60].map((d) => (
                   <button
-                    key={duration}
-                    onClick={() => setSlotDuration(duration)}
+                    key={d}
+                    type="button"
+                    onClick={() => setSlotDuration(d)}
                     className={`flex-1 p-3 rounded-lg font-medium transition-colors ${
-                      slotDuration === duration
+                      slotDuration === d
                         ? 'bg-primary-600 text-white'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {duration} min
+                    {d} min
                   </button>
                 ))}
               </div>
@@ -164,56 +196,49 @@ const Availability = () => {
         <div className="card p-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">Generate Slots</h2>
           <p className="text-slate-600 mb-6">
-            Generate appointment slots for the next 30 days based on your availability settings.
+            Generate appointment slots for the next 30 days based on your working days
+            and time settings above.
           </p>
           <button
             onClick={handleGenerateSlots}
             disabled={loading}
-            className="btn btn-teal w-full"
+            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Generate Slots for 30 Days
+            {loading ? (
+              'Generating...'
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Generate Slots for 30 Days
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Blocked Dates */}
+      {/* Block a Date */}
       <div className="card p-6 mt-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Blocked Dates</h2>
-        <div className="flex gap-4 mb-6">
+        <h2 className="text-xl font-semibold text-slate-900 mb-4">Block a Date</h2>
+        <div className="flex gap-4">
           <input
             type="date"
             value={newBlockedDate}
             onChange={(e) => setNewBlockedDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
             className="input flex-1"
           />
-          <button onClick={handleBlockDate} className="btn btn-danger">
-            <X className="w-4 h-4 mr-2" />
+          <button
+            onClick={handleBlockDate}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+          >
+            <X className="w-4 h-4" />
             Block Date
           </button>
         </div>
-
-        {blockedDates.length === 0 ? (
-          <p className="text-slate-500 text-center py-4">No blocked dates</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {blockedDates.map((date) => (
-              <div
-                key={date}
-                className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg"
-              >
-                <Calendar className="w-4 h-4" />
-                <span>{date}</span>
-                <button
-                  onClick={() => handleRemoveBlockedDate(date)}
-                  className="p-1 hover:bg-red-200 rounded"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <p className="text-sm text-slate-500 mt-2">
+          Blocking a date will prevent new bookings for all slots on that day.
+        </p>
       </div>
     </div>
   );

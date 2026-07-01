@@ -30,37 +30,37 @@ const router = express.Router();
 router.get("/:id", getPatientById);
 
 // Protected routes - Patient only
-router.post("/profile", isAuthenticatedUser, authrizeRole("user"), createPatientProfile);
-router.get("/profile/me", isAuthenticatedUser, authrizeRole("user"), getMyPatientProfile);
-router.put("/profile/:id", isAuthenticatedUser, authrizeRole("user"), updatePatientProfile);
+router.post("/profile", isAuthenticatedUser, authrizeRole("patient"), createPatientProfile);
+router.get("/profile/me", isAuthenticatedUser, authrizeRole("patient"), getMyPatientProfile);
+router.put("/profile/:id", isAuthenticatedUser, authrizeRole("patient"), updatePatientProfile);
 
 // Medical History
-router.post("/profile/:id/medical-history", isAuthenticatedUser, authrizeRole("user"), addMedicalHistory);
-router.put("/profile/:id/medical-history/:historyId", isAuthenticatedUser, authrizeRole("user"), updateMedicalHistory);
-router.delete("/profile/:id/medical-history/:historyId", isAuthenticatedUser, authrizeRole("user"), deleteMedicalHistory);
+router.post("/profile/:id/medical-history", isAuthenticatedUser, authrizeRole("patient"), addMedicalHistory);
+router.put("/profile/:id/medical-history/:historyId", isAuthenticatedUser, authrizeRole("patient"), updateMedicalHistory);
+router.delete("/profile/:id/medical-history/:historyId", isAuthenticatedUser, authrizeRole("patient"), deleteMedicalHistory);
 
 // Allergies
-router.post("/profile/:id/allergies", isAuthenticatedUser, authrizeRole("user"), addAllergy);
-router.put("/profile/:id/allergies/:allergyId", isAuthenticatedUser, authrizeRole("user"), updateAllergy);
-router.delete("/profile/:id/allergies/:allergyId", isAuthenticatedUser, authrizeRole("user"), deleteAllergy);
+router.post("/profile/:id/allergies", isAuthenticatedUser, authrizeRole("patient"), addAllergy);
+router.put("/profile/:id/allergies/:allergyId", isAuthenticatedUser, authrizeRole("patient"), updateAllergy);
+router.delete("/profile/:id/allergies/:allergyId", isAuthenticatedUser, authrizeRole("patient"), deleteAllergy);
 
 // Current Medications
-router.post("/profile/:id/medications", isAuthenticatedUser, authrizeRole("user"), addCurrentMedication);
-router.put("/profile/:id/medications/:medicationId", isAuthenticatedUser, authrizeRole("user"), updateCurrentMedication);
-router.delete("/profile/:id/medications/:medicationId", isAuthenticatedUser, authrizeRole("user"), deleteCurrentMedication);
+router.post("/profile/:id/medications", isAuthenticatedUser, authrizeRole("patient"), addCurrentMedication);
+router.put("/profile/:id/medications/:medicationId", isAuthenticatedUser, authrizeRole("patient"), updateCurrentMedication);
+router.delete("/profile/:id/medications/:medicationId", isAuthenticatedUser, authrizeRole("patient"), deleteCurrentMedication);
 
 // Family History
-router.post("/profile/:id/family-history", isAuthenticatedUser, authrizeRole("user"), addFamilyHistory);
-router.put("/profile/:id/family-history/:familyId", isAuthenticatedUser, authrizeRole("user"), updateFamilyHistory);
-router.delete("/profile/:id/family-history/:familyId", isAuthenticatedUser, authrizeRole("user"), deleteFamilyHistory);
+router.post("/profile/:id/family-history", isAuthenticatedUser, authrizeRole("patient"), addFamilyHistory);
+router.put("/profile/:id/family-history/:familyId", isAuthenticatedUser, authrizeRole("patient"), updateFamilyHistory);
+router.delete("/profile/:id/family-history/:familyId", isAuthenticatedUser, authrizeRole("patient"), deleteFamilyHistory);
 
 // Lifestyle and Insurance
-router.put("/profile/:id/lifestyle", isAuthenticatedUser, authrizeRole("user"), updateLifestyle);
-router.put("/profile/:id/insurance", isAuthenticatedUser, authrizeRole("user"), updateInsurance);
+router.put("/profile/:id/lifestyle", isAuthenticatedUser, authrizeRole("patient"), updateLifestyle);
+router.put("/profile/:id/insurance", isAuthenticatedUser, authrizeRole("patient"), updateInsurance);
 
 // Preferred Doctors
-router.post("/profile/:id/preferred-doctors", isAuthenticatedUser, authrizeRole("user"), addPreferredDoctor);
-router.delete("/profile/:id/preferred-doctors/:doctorId", isAuthenticatedUser, authrizeRole("user"), removePreferredDoctor);
+router.post("/profile/:id/preferred-doctors", isAuthenticatedUser, authrizeRole("patient"), addPreferredDoctor);
+router.delete("/profile/:id/preferred-doctors/:doctorId", isAuthenticatedUser, authrizeRole("patient"), removePreferredDoctor);
 
 // Admin routes
 router.delete("/admin/:id", isAuthenticatedUser, authrizeRole("admin", "super_admin"), deletePatient);

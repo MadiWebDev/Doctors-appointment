@@ -19,7 +19,7 @@ export class PatientService {
       throw new ErrorHandler("User not found", 404);
     }
 
-    if (user.role !== "user") {
+    if (user.role !== "patient") {
       throw new ErrorHandler("User is not a patient", 403);
     }
 
@@ -35,7 +35,7 @@ export class PatientService {
    * Get patient by ID
    */
   async getPatientById(patientId) {
-    const patient = await Patient.findById(patientId).populate("user", "username email");
+    const patient = await Patient.findById(patientId).populate("user", "name email");
     if (!patient) {
       throw new ErrorHandler("Patient not found", 404);
     }
@@ -46,7 +46,7 @@ export class PatientService {
    * Get patient by user ID
    */
   async getPatientByUserId(userId) {
-    const patient = await Patient.findOne({ user: userId }).populate("user", "username email");
+    const patient = await Patient.findOne({ user: userId }).populate("user", "name email");
     if (!patient) {
       throw new ErrorHandler("Patient profile not found", 404);
     }
@@ -78,7 +78,7 @@ export class PatientService {
         runValidators: true,
         useFindAndModify: false,
       }
-    ).populate("user", "username email");
+    ).populate("user", "name email");
 
     return updatedPatient;
   }

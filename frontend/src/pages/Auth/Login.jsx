@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import { login } from '../../features/auth/authSlice';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
+import { ThemeToggleCompact } from '../../Components/shared/ThemeToggle';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -79,17 +80,22 @@ const Login = () => {
       </div>
 
       {/* Right panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-slate-950">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Stethoscope className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between mb-8">
+            <div className="lg:hidden flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                <img src='/sethoscope1.png' alt='sethoscope' />
+              </div>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">MediBook</span>
             </div>
-            <span className="text-2xl font-bold text-slate-900">MediBook</span>
+            <div className="ml-auto">
+              <ThemeToggleCompact />
+            </div>
           </div>
 
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome back</h2>
-          <p className="text-slate-600 mb-8">Sign in to your account to continue</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome back</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-8">Sign in to your account to continue</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
@@ -124,7 +130,7 @@ const Login = () => {
             </div>
 
             <div className="flex items-center justify-between">
-              <Link to="/forgot-password" className="text-sm text-primary-600 hover:text primary-700">
+              <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">
                 Forgot password?
               </Link>
             </div>
@@ -139,13 +145,13 @@ const Login = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-slate-600">
+            <p className="text-slate-600 dark:text-slate-400">
               Don't have an account?{' '}
               <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
                 Register as Patient
               </Link>
             </p>
-            <p className="text-slate-600 mt-2">
+            <p className="text-slate-600 dark:text-slate-400 mt-2">
               Are you a doctor?{' '}
               <Link to="/doctor-register" className="text-primary-600 hover:text-primary-700 font-medium">
                 Register here
