@@ -44,6 +44,13 @@ const StatusBadge = ({ status }) => {
       dot: 'bg-emerald-500',
       label: 'Approved',
     },
+    suspended: {
+      bg: 'bg-orange-50',
+      text: 'text-orange-700',
+      border: 'border-orange-200',
+      dot: 'bg-orange-500',
+      label: 'Suspended',
+    },
   };
 
   const config = statusConfig[status] || statusConfig.pending;

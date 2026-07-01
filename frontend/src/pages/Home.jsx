@@ -48,7 +48,7 @@ const ChevronIcon = ({ className = 'w-4 h-4' }) => (
    the "how it works" steps, since a heartbeat is the one shape
    nobody mistakes for anything but healthcare.
    ──────────────────────────────────────────────────────────── */
-const PulseLine = ({ className = '' }) => (
+const PulseLine = ({ className = 'bg-background' }) => (
   <svg
     viewBox="0 0 600 80"
     preserveAspectRatio="none"
@@ -371,7 +371,7 @@ export default function Home() {
 
       {/* ── CTA Banner ── */}
       <div
-        className="relative overflow-hidden mx-6 md:mx-10 lg:mx-20 mb-20 md:mb-28 rounded-3xl px-8 md:px-16 py-14 md:py-20 flex flex-col items-center text-center gap-6"
+        className="relative overflow-hidden mt-20 mx-8 md:mx-10 lg:mx-20 mb-20 md:mb-28 rounded-3xl px-8 md:px-16 py-14 md:py-20 flex flex-col items-center text-center gap-6"
         style={{
           background:
             'linear-gradient(135deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 75%, black) 55%, color-mix(in srgb, var(--primary) 55%, black) 100%)',

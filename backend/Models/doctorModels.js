@@ -180,7 +180,7 @@ location: {
   // Verification Status
   status: {
     type: String,
-    enum: ["pending", "approved", "rejected"],
+    enum: ["pending", "approved", "rejected", "suspended"],
     default: "pending",
     index: true,
   }, 
@@ -190,6 +190,14 @@ location: {
     ref: "User",
   },
   approvedAt: Date,
+
+  // Suspension
+  suspensionReason: String,
+  suspendedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  suspendedAt: Date,
   
   // Reviews & Ratings
   ratings: {

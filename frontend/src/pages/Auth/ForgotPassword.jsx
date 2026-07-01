@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Mail } from 'lucide-react';
@@ -11,7 +11,9 @@ import { ThemeToggleCompact } from '../../Components/shared/ThemeToggle';
 
 const ForgotPassword = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [isSubmitted, setIsSubmitted] = React.useState(false);
+  const [submittedEmail, setSubmittedEmail] = React.useState('');
 
   const {
     register,
@@ -24,10 +26,11 @@ const ForgotPassword = () => {
   const onSubmit = async (data) => {
     try {
       await dispatch(forgotPassword(data.email)).unwrap();
-      toast.success('Reset link sent to your email');
+      toast.success('OTP sent to your email');
+      setSubmittedEmail(data.email);
       setIsSubmitted(true);
     } catch (error) {
-      toast.error(error || 'Failed to send reset link');
+      toast.error(error || 'Failed to send OTP');
     }
   };
 
@@ -53,7 +56,7 @@ const ForgotPassword = () => {
           <>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Forgot password?</h2>
             <p className="text-slate-600 dark:text-slate-400 mb-8">
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we'll send you a 6-digit OTP to reset your password.
             </p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -73,7 +76,7 @@ const ForgotPassword = () => {
                 disabled={isSubmitting}
                 className="btn btn-primary w-full"
               >
-                {isSubmitting ? 'Sending...' : 'Send reset link'}
+                {isSubmitting ? 'Sending...' : 'Send OTP'}
               </button>
             </form>
           </>
@@ -84,11 +87,21 @@ const ForgotPassword = () => {
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Check your email</h2>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              We've sent a password reset link to your email address.
+              We've sent a 6-digit OTP to <span className="font-medium text-slate-900 dark:text-white">{submittedEmail}</span>.
+              Enter it on the next page to reset your password.
             </p>
-            <Link to="/login" className="btn btn-primary">
-              Back to login
-            </Link>
+            <button
+              onClick={() => navigate('/reset-password', { state: { email: submittedEmail } })}
+              className="btn btn-primary w-full mb-3"
+            >
+              Enter OTP &amp; Reset Password
+            </button>
+            <button
+              onClick={() => setIsSubmitted(false)}
+              className="btn btn-secondary w-full"
+            >
+              Use a different email
+            </button>
           </div>
         )}
 

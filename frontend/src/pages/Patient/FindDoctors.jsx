@@ -165,7 +165,7 @@ const FindDoctors = () => {
                     size="lg"
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 truncate">
+                    <h3 className="font-semibold text-foreground truncate">
                       {getDoctorName(doctor)}
                     </h3>
                     <p className="text-sm text-slate-600">{doctor.specialization}</p>
