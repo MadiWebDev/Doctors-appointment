@@ -10,7 +10,7 @@ export const auditLogger = (action, actionType, resourceType = "none") => {
         try {
           const logData = {
             userId: req.user?._id || null,
-            username: req.user?.username || 'anonymous',
+            username: req.user?.name || 'anonymous',
             userRole: req.user?.role || 'guest',
             action,
             actionType,

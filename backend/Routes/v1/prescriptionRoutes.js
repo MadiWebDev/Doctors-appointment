@@ -20,18 +20,18 @@ const router = express.Router();
 
 // Protected routes - Doctor only
 router.post("/", isAuthenticatedUser, authrizeRole("doctor"), createPrescription);
-router.get("/my-prescriptions", isAuthenticatedUser, authrizeRole("doctor"), getMyPrescriptionsDoctor);
+router.get("/doctor/my-prescriptions", isAuthenticatedUser, authrizeRole("doctor"), getMyPrescriptionsDoctor);
 
 // Protected routes - Patient only
-router.get("/my-prescriptions", isAuthenticatedUser, authrizeRole("user"), getMyPrescriptions);
-router.get("/active", isAuthenticatedUser, authrizeRole("user"), getActivePrescriptions);
+router.get("/my-prescriptions", isAuthenticatedUser, authrizeRole("patient"), getMyPrescriptions);
+router.get("/active", isAuthenticatedUser, authrizeRole("patient"), getActivePrescriptions);
 
-// Public routes (with authentication)
-router.get("/:id", isAuthenticatedUser, getPrescriptionById);
+// Authenticated routes (any role)
+router.get("/search", isAuthenticatedUser, searchPrescriptions);
+router.get("/appointment/:appointmentId", isAuthenticatedUser, getPrescriptionsByAppointment);
 router.get("/patient/:patientId", isAuthenticatedUser, getPatientPrescriptions);
 router.get("/doctor/:doctorId", isAuthenticatedUser, getDoctorPrescriptions);
-router.get("/appointment/:appointmentId", isAuthenticatedUser, getPrescriptionsByAppointment);
-router.get("/search", isAuthenticatedUser, searchPrescriptions);
+router.get("/:id", isAuthenticatedUser, getPrescriptionById);
 
 // Protected routes - Doctor only (update/delete)
 router.put("/:id", isAuthenticatedUser, authrizeRole("doctor"), updatePrescription);

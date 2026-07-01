@@ -35,7 +35,7 @@ export class NotificationService {
 
     const skip = (page - 1) * limit;
     const notifications = await Notification.find(query)
-      .populate("relatedUser", "username email")
+      .populate("relatedUser", "name email")
       .populate("relatedDoctor", "firstName lastName")
       .populate("relatedAppointment")
       .sort({ createdAt: -1 })
@@ -138,7 +138,7 @@ export class NotificationService {
   async sendEmailNotification(user, notification) {
     try {
       const subject = `Doctor Appointment - ${notification.title}`;
-      const message = `Hello ${user.username},\n\n${notification.message}\n\nBest regards,\nDoctor Appointment Team`;
+      const message = `Hello ${user.name},\n\n${notification.message}\n\nBest regards,\nDoctor Appointment Team`;
 
       await sendEmail({
         email: user.email,

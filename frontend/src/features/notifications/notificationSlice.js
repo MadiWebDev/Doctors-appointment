@@ -1,12 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
 
-// Async thunks
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetchNotifications',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get('/notifications', { params });
+      const response = await api.get('/v1/notification', { params });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch notifications');
@@ -18,7 +17,7 @@ export const markAsRead = createAsyncThunk(
   'notifications/markAsRead',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/notifications/${id}/read`);
+      const response = await api.put(`/v1/notification/${id}/read`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to mark as read');
@@ -30,7 +29,7 @@ export const markAllAsRead = createAsyncThunk(
   'notifications/markAllAsRead',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.patch('/notifications/read-all');
+      const response = await api.put('/v1/notification/read-all');
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to mark all as read');
@@ -54,14 +53,13 @@ const notificationSlice = createSlice({
     },
     addNotification: (state, action) => {
       state.list.unshift(action.payload);
-      if (!action.payload.read) {
+      if (!action.payload.isRead) {
         state.unreadCount += 1;
       }
     },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch Notifications
       .addCase(fetchNotifications.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -75,27 +73,24 @@ const notificationSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // Mark As Read
-      .addCase(markAsRead.pending, (state) => {
-        state.error = null;
-      })
+
       .addCase(markAsRead.fulfilled, (state, action) => {
-        const notification = state.list.find((n) => n._id === action.payload.notification._id);
-        if (notification && !notification.read) {
-          notification.read = true;
-          state.unreadCount = Math.max(0, state.unreadCount - 1);
+        const updated = action.payload.notification;
+        if (updated) {
+          const n = state.list.find((n) => n._id === updated._id);
+          if (n && !n.isRead) {
+            n.isRead = true;
+            state.unreadCount = Math.max(0, state.unreadCount - 1);
+          }
         }
       })
       .addCase(markAsRead.rejected, (state, action) => {
         state.error = action.payload;
       })
-      // Mark All As Read
-      .addCase(markAllAsRead.pending, (state) => {
-        state.error = null;
-      })
+
       .addCase(markAllAsRead.fulfilled, (state) => {
-        state.list.forEach((notification) => {
-          notification.read = true;
+        state.list.forEach((n) => {
+          n.isRead = true;
         });
         state.unreadCount = 0;
       })
@@ -104,6 +99,11 @@ const notificationSlice = createSlice({
       });
   },
 });
+
+// Selectors
+export const selectNotifications = (state) => state.notifications.list;
+export const selectUnreadCount = (state) => state.notifications.unreadCount;
+export const selectNotificationsLoading = (state) => state.notifications.loading;
 
 export const { clearError, addNotification } = notificationSlice.actions;
 export default notificationSlice.reducer;

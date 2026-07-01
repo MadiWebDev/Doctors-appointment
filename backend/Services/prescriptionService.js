@@ -39,7 +39,7 @@ export class PrescriptionService {
       .populate("doctor", "firstName lastName specialization")
       .populate("appointment")
       .populate("medicalRecord")
-      .populate("signedBy", "username email");
+      .populate("signedBy", "name email");
     
     if (!prescription) {
       throw new ErrorHandler("Prescription not found", 404);
@@ -221,7 +221,7 @@ export class PrescriptionService {
 
     if (userRole === "doctor") {
       query.doctor = userId;
-    } else if (userRole === "user") {
+    } else if (userRole === "patient") {
       // Find patient profile for this user
       const patient = await Patient.findOne({ user: userId });
       if (!patient) {

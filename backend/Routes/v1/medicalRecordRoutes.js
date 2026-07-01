@@ -18,14 +18,14 @@ const router = express.Router();
 router.post("/", isAuthenticatedUser, authrizeRole("doctor"), createMedicalRecord);
 
 // Protected routes - Patient only
-router.get("/my-records", isAuthenticatedUser, authrizeRole("user"), getMyMedicalRecords);
+router.get("/my-records", isAuthenticatedUser, authrizeRole("patient"), getMyMedicalRecords);
 
-// Public routes (with authentication)
-router.get("/:id", isAuthenticatedUser, getMedicalRecordById);
+// Authenticated routes (any role)
+router.get("/search", isAuthenticatedUser, searchMedicalRecords);
+router.get("/appointment/:appointmentId", isAuthenticatedUser, getMedicalRecordsByAppointment);
 router.get("/patient/:patientId", isAuthenticatedUser, getPatientMedicalRecords);
 router.get("/doctor/:doctorId", isAuthenticatedUser, getDoctorMedicalRecords);
-router.get("/appointment/:appointmentId", isAuthenticatedUser, getMedicalRecordsByAppointment);
-router.get("/search", isAuthenticatedUser, searchMedicalRecords);
+router.get("/:id", isAuthenticatedUser, getMedicalRecordById);
 
 // Protected routes - Doctor only (update/delete)
 router.put("/:id", isAuthenticatedUser, authrizeRole("doctor"), updateMedicalRecord);

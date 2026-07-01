@@ -3,13 +3,14 @@ import { z } from "zod";
 export const bookAppointmentSchema = z.object({
   doctor: z.string().min(1, "Doctor ID is required"),
   appointmentDate: z.string().min(1, "Appointment date is required"),
-  appointmentTime: z.string().min(1, "Appointment time is required"),
-  endTime: z.string().min(1, "End time is required"),
+  appointmentTime: z.string().optional(),
+  endTime: z.string().optional(),
   appointmentType: z.enum(["in-person", "video"]).optional(),
   reason: z.string().min(5, "Reason must be at least 5 characters").max(500),
   notes: z.string().max(1000).optional(),
   medicalHistory: z.string().optional(),
   symptoms: z.array(z.string()).optional(),
+  slotId: z.string().optional(),
 });
 
 export const updateAppointmentSchema = z.object({

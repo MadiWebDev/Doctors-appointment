@@ -18,7 +18,7 @@ const doctorSchema = new mongoose.Schema({
   
   licenseDocument: {
     type: String,
-    required: [true, "Please upload your license document"],
+    default: "pending_verification",
   },
   
   // Profile Information
@@ -29,7 +29,8 @@ const doctorSchema = new mongoose.Schema({
   },
   lastName: {
     type: String,
-    required: [true, "Please enter your last name"],
+    required: false,
+    default: "",
     trim: true,
   },
   specialization: {

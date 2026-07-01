@@ -1,9 +1,10 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { initializeAuth } from './features/auth/authSlice';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './Components/shared/ProtectedRoute';
+import GuestRoute from './Components/shared/GuestRoute';
 import Spinner from './Components/shared/Spinner';
 import DashboardLayout from './layouts/DashboardLayout';
 
@@ -36,31 +37,38 @@ import AdminPatients from './pages/Admin/Patients';
 import AdminAppointments from './pages/Admin/Appointments';
 import Analytics from './pages/Admin/Analytics';
 import Specializations from './pages/Admin/Specializations';
+import AdminNotifications from './pages/Admin/Notifications';
 
 // NotFound
 import NotFound from './pages/NotFound';
+import Home from './pages/Home';
 
 function App() {
   const dispatch = useDispatch();
-  const { initialized, loading } = useAuth();
+  const { initialized } = useAuth();
 
   React.useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
 
-  if (!initialized || loading) {
+  if (!initialized) {
     return <Spinner fullPage />;
   }
 
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<PatientRegister />} />
-        <Route path="/doctor-register" element={<DoctorRegister />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        {/* Public Routes — accessible to everyone */}
+        <Route path='/' element={<Home />} />
+
+        {/* Guest-only Routes — redirect to dashboard if already logged in */}
+        <Route element={<GuestRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<PatientRegister />} />
+          <Route path="/doctor-register" element={<DoctorRegister />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+        </Route>
 
         {/* Patient Protected Routes */}
         <Route element={<ProtectedRoute allowedRoles="patient" />}>
@@ -94,11 +102,12 @@ function App() {
             <Route path="/admin/appointments" element={<AdminAppointments />} />
             <Route path="/admin/analytics" element={<Analytics />} />
             <Route path="/admin/specializations" element={<Specializations />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
           </Route>
         </Route>
 
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />

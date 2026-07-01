@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,8 +17,11 @@ const BookAppointment = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
-  const slotId = searchParams.get('slot');
+
+  // URL: /patient/book/:id?slotId=X&date=YYYY-MM-DD&time=HH:MM
+  const slotId = searchParams.get('slotId');
   const date = searchParams.get('date');
+  const time = searchParams.get('time'); // decoded startTime from DoctorProfile
 
   const { selected: doctor, loading } = useSelector((state) => state.doctors);
   const { loading: bookingLoading } = useSelector((state) => state.appointments);
@@ -26,7 +29,7 @@ const BookAppointment = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(bookAppointmentSchema),
   });
@@ -41,26 +44,25 @@ const BookAppointment = () => {
 
   const onSubmit = async (data) => {
     try {
-      await dispatch(bookAppointment({
-        doctorId: id,
-        slotId,
-        date,
-        reason: data.reason,
-      })).unwrap();
+      await dispatch(
+        bookAppointment({
+          doctor: id,
+          slotId,
+          appointmentDate: date,
+          appointmentTime: time,
+          reason: data.reason,
+        })
+      ).unwrap();
       toast.success('Appointment booked successfully');
       navigate('/patient/appointments');
     } catch (error) {
-      toast.error(error || 'Failed to book appointment');
+      toast.error(typeof error === 'string' ? error : 'Failed to book appointment');
     }
   };
 
-  if (loading) {
-    return <Spinner />;
-  }
-
-  if (!doctor) {
+  if (loading) return <Spinner />;
+  if (!doctor)
     return <div className="text-center py-8 text-slate-500">Doctor not found</div>;
-  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -77,9 +79,15 @@ const BookAppointment = () => {
 
         {/* Doctor Info */}
         <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg mb-6">
-          <Avatar name={doctor.name} src={doctor.avatar} size="lg" />
+          <Avatar
+            name={`${doctor.firstName || ''} ${doctor.lastName || ''}`}
+            src={doctor.profileImage?.url}
+            size="lg"
+          />
           <div>
-            <h2 className="font-semibold text-slate-900">{doctor.name}</h2>
+            <h2 className="font-semibold text-slate-900">
+              Dr. {doctor.firstName} {doctor.lastName}
+            </h2>
             <p className="text-sm text-slate-600">{doctor.specialization}</p>
           </div>
         </div>
@@ -97,14 +105,18 @@ const BookAppointment = () => {
             <Clock className="w-5 h-5 text-slate-400" />
             <div>
               <p className="text-sm text-slate-500">Time</p>
-              <p className="font-medium text-slate-900">{formatTime(slotId)}</p>
+              <p className="font-medium text-slate-900">
+                {time ? formatTime(time) : '—'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <DollarSign className="w-5 h-5 text-slate-400" />
             <div>
               <p className="text-sm text-slate-500">Consultation Fee</p>
-              <p className="font-medium text-slate-900">{formatCurrency(doctor.consultationFee)}</p>
+              <p className="font-medium text-slate-900">
+                {formatCurrency(doctor.consultationFee)}
+              </p>
             </div>
           </div>
         </div>
@@ -119,15 +131,17 @@ const BookAppointment = () => {
               rows={4}
               placeholder="Please describe your symptoms or reason for visit..."
             />
-            {errors.reason && <p className="error-msg">{errors.reason.message}</p>}
+            {errors.reason && (
+              <p className="error-msg">{errors.reason.message}</p>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={bookingLoading}
+            disabled={isSubmitting || bookingLoading}
             className="btn btn-primary w-full"
           >
-            {bookingLoading ? 'Booking...' : 'Confirm Booking'}
+            {isSubmitting || bookingLoading ? 'Booking...' : 'Confirm Booking'}
           </button>
         </form>
       </div>

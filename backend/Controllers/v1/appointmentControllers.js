@@ -32,6 +32,42 @@ export const getAppointmentById = catchAsyncError(async (req, res, next) => {
   });
 });
 
+// Get ALL Appointments (Admin)
+export const getAllAppointmentsAdmin = catchAsyncError(async (req, res, next) => {
+  const page   = parseInt(req.query.page)  || 1;
+  const limit  = parseInt(req.query.limit) || 20;
+  const status = req.query.status;
+
+  const Appointment = (await import("../../Models/appointmentModels.js")).default;
+
+  const query = {};
+  if (status && status !== 'all') query.status = status;
+
+  const [appointments, total] = await Promise.all([
+    Appointment.find(query)
+      .populate("patient", "name email phone")
+      .populate({
+        path: "doctor",
+        select: "firstName lastName specialization profileImage consultationFee",
+      })
+      .sort({ appointmentDate: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Appointment.countDocuments(query),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    appointments,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  });
+});
+
 // Get Patient's Appointments
 export const getPatientAppointments = catchAsyncError(async (req, res, next) => {
   const filters = {

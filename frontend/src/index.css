@@ -107,7 +107,7 @@
 
   /* Form inputs */
   .input {
-    @apply w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors;
+    @apply w-full px-4 py-2 text-secondary rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors;
   }
   .input-error {
     @apply border-red-500 focus:ring-red-500;
@@ -121,7 +121,12 @@
 
   /* Card */
   .card {
-    @apply bg-white rounded-xl border border-slate-100 shadow-sm;
+    @apply bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm;
+  }
+
+  /* Skeleton */
+  .skeleton {
+    @apply animate-pulse bg-slate-200 dark:bg-slate-700 rounded-lg;
   }
 
   /* Badges */
@@ -149,10 +154,10 @@
 
   /* Stat card */
   .stat-card {
-    @apply bg-white rounded-xl border border-slate-100 shadow-sm p-6;
+    @apply bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm p-4 sm:p-6;
   }
   .stat-icon {
-    @apply w-12 h-12 rounded-xl flex items-center justify-center;
+    @apply w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center;
   }
 
   /* Sidebar */
@@ -163,20 +168,20 @@
     @apply bg-primary-50 text-primary-700 font-medium;
   }
 
-  /* Skeleton */
-  .skeleton {
-    @apply animate-pulse bg-slate-200 rounded-lg;
+  /* Mobile safe area bottom padding (for bottom nav) */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Page headers */
   .page-title {
-    @apply text-2xl font-bold text-slate-900;
+    @apply text-xl sm:text-2xl font-bold text-slate-900 dark:text-white;
   }
   .page-subtitle {
-    @apply text-slate-500 mt-1;
+    @apply text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1;
   }
   .page-header {
-    @apply mb-6;
+    @apply mb-4 sm:mb-6;
   }
 
   /* Table */

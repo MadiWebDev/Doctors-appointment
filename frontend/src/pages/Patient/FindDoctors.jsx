@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, SlidersHorizontal, Star, MapPin } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -8,29 +8,63 @@ import Spinner from '../../Components/shared/Spinner';
 import SkeletonRow from '../../Components/shared/SkeletonRow';
 import { SPECIALIZATIONS, formatCurrency } from '../../utils/helpers';
 
+const getDoctorName = (doc) =>
+  `Dr. ${doc.firstName || ''} ${doc.lastName || ''}`.trim();
+
+const StarRating = ({ rating }) => {
+  const stars = Math.round(rating || 0);
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          className={`w-4 h-4 ${i <= stars ? 'text-yellow-400 fill-current' : 'text-slate-300'}`}
+        />
+      ))}
+      <span className="ml-1 text-sm text-slate-600">
+        {rating ? rating.toFixed(1) : 'New'}
+      </span>
+    </div>
+  );
+};
+
 const FindDoctors = () => {
   const dispatch = useDispatch();
   const { list: doctors, loading } = useSelector((state) => state.doctors);
+
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     specialization: '',
-    minFee: 0,
-    maxFee: 10000,
-    minRating: 0,
+    maxFee: '',
+    minRating: '',
   });
-  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
 
+  // Debounce search input by 400ms
   useEffect(() => {
-    dispatch(fetchDoctors({ ...filters, search: searchTerm, page }));
-  }, [dispatch, filters, searchTerm, page]);
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  const filteredDoctors = doctors.filter((doctor) => {
-    if (filters.specialization && doctor.specialization !== filters.specialization) return false;
-    if (doctor.consultationFee < filters.minFee || doctor.consultationFee > filters.maxFee) return false;
-    if (filters.minRating && (doctor.rating || 0) < filters.minRating) return false;
-    return true;
-  });
+  // Reset to page 1 whenever filters/search change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, filters]);
+
+  // Fetch whenever debounced search, filters, or page changes
+  useEffect(() => {
+    const params = {
+      page,
+      limit: 9,
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      ...(filters.specialization ? { specialization: filters.specialization } : {}),
+      ...(filters.maxFee ? { maxFee: filters.maxFee } : {}),
+      ...(filters.minRating ? { minRating: filters.minRating } : {}),
+    };
+    dispatch(fetchDoctors(params));
+  }, [dispatch, debouncedSearch, filters, page]);
 
   return (
     <div>
@@ -39,7 +73,7 @@ const FindDoctors = () => {
         <p className="page-subtitle">Search and book appointments with verified doctors</p>
       </div>
 
-      {/* Search Bar */}
+      {/* Search + Filter Bar */}
       <div className="card p-4 mb-6">
         <div className="flex gap-4">
           <div className="flex-1 relative">
@@ -54,9 +88,9 @@ const FindDoctors = () => {
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="btn btn-secondary"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
           >
-            <SlidersHorizontal className="w-4 h-4 mr-2" />
+            <SlidersHorizontal className="w-4 h-4" />
             Filters
           </button>
         </div>
@@ -67,44 +101,35 @@ const FindDoctors = () => {
               <label className="label">Specialization</label>
               <select
                 value={filters.specialization}
-                onChange={(e) => setFilters({ ...filters, specialization: e.target.value })}
+                onChange={(e) =>
+                  setFilters({ ...filters, specialization: e.target.value })
+                }
                 className="input"
               >
                 <option value="">All Specializations</option>
                 {SPECIALIZATIONS.map((spec) => (
-                  <option key={spec} value={spec}>
-                    {spec}
-                  </option>
+                  <option key={spec} value={spec}>{spec}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="label">Fee Range (PKR)</label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={filters.minFee}
-                  onChange={(e) => setFilters({ ...filters, minFee: Number(e.target.value) })}
-                  className="input"
-                />
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={filters.maxFee}
-                  onChange={(e) => setFilters({ ...filters, maxFee: Number(e.target.value) })}
-                  className="input"
-                />
-              </div>
+              <label className="label">Max Fee (PKR)</label>
+              <input
+                type="number"
+                placeholder="e.g. 2000"
+                value={filters.maxFee}
+                onChange={(e) => setFilters({ ...filters, maxFee: e.target.value })}
+                className="input"
+              />
             </div>
             <div>
               <label className="label">Minimum Rating</label>
               <select
                 value={filters.minRating}
-                onChange={(e) => setFilters({ ...filters, minRating: Number(e.target.value) })}
+                onChange={(e) => setFilters({ ...filters, minRating: e.target.value })}
                 className="input"
               >
-                <option value="0">Any Rating</option>
+                <option value="">Any Rating</option>
                 <option value="3">3+ Stars</option>
                 <option value="4">4+ Stars</option>
                 <option value="4.5">4.5+ Stars</option>
@@ -121,50 +146,77 @@ const FindDoctors = () => {
             <SkeletonRow key={i} columns={4} />
           ))}
         </div>
-      ) : filteredDoctors.length === 0 ? (
+      ) : doctors.length === 0 ? (
         <div className="card p-8 text-center">
           <p className="text-slate-500">No doctors found matching your criteria</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDoctors.map((doctor) => (
-            <div key={doctor._id} className="card p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-4 mb-4">
-                <Avatar name={doctor.name} src={doctor.avatar} size="lg" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900">{doctor.name}</h3>
-                  <p className="text-sm text-slate-600">{doctor.specialization}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm text-slate-600">{doctor.rating || 'N/A'}</span>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {doctors.map((doctor) => (
+              <div
+                key={doctor._id}
+                className="card p-6 hover:shadow-md transition-shadow flex flex-col"
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <Avatar
+                    name={getDoctorName(doctor)}
+                    src={doctor.profileImage?.url}
+                    size="lg"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 truncate">
+                      {getDoctorName(doctor)}
+                    </h3>
+                    <p className="text-sm text-slate-600">{doctor.specialization}</p>
+                    <StarRating rating={doctor.ratings} />
                   </div>
                 </div>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <MapPin className="w-4 h-4" />
-                  <span>{doctor.hospitalAffiliation}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="font-medium">Experience:</span>
-                  <span>{doctor.experience} years</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="font-medium">Fee:</span>
-                  <span>{formatCurrency(doctor.consultationFee)}</span>
-                </div>
-              </div>
 
-              <Link
-                to={`/patient/doctors/${doctor._id}`}
-                className="btn btn-primary w-full"
-              >
-                View Profile
-              </Link>
-            </div>
-          ))}
-        </div>
+                <div className="space-y-2 mb-4 flex-1">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{doctor.hospitalAffiliation}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="font-medium">Experience:</span>
+                    <span>{doctor.experience} years</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="font-medium">Fee:</span>
+                    <span>{formatCurrency(doctor.consultationFee)}</span>
+                  </div>
+                </div>
+
+                <Link
+                  to={`/patient/doctors/${doctor._id}`}
+                  className="btn btn-primary w-full text-center"
+                >
+                  View Profile & Book
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Previous
+            </button>
+            <span className="px-4 py-2 text-slate-600">Page {page}</span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={doctors.length < 9}
+              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
