@@ -1,15 +1,16 @@
 import axios from "axios";
 
-// Uses relative URL - Vercel proxy forwards /api/* to backend
+// Production backend URL
+const BACKEND_URL = "https://doctors-appointment-sigma-coral.vercel.app";
+
+// Create axios instance with base URL
 const api = axios.create({
-  baseURL: "/",
-  withCredentials: true,
+  baseURL: BACKEND_URL || import.meta.env.VITE_API_URL,
+  withCredentials: true, // Important for httpOnly cookies
   headers: {
     "Content-Type": "application/json",
   },
-});
-
-// Request interceptor
+});// Request interceptor
 api.interceptors.request.use(
   (config) => {
     return config;

@@ -4,12 +4,16 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
+ "rewrites": [
+  {
+    "source": "/api/(.*)",
+    "destination": "https://doctors-appointment-sigma-coral.vercel.app/api/$1"
+  },
+  {
+    "source": "/(.*)",
+    "destination": "/index.html"
+  }
+],
   "headers": [
     {
       "source": "/(.*)",
