@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // Hardcoded production backend URL — env var fallback kept for local dev
-const BACKEND_URL = "https://doctors-appointment-sigma-coral.vercel.app";
+const BACKEND_URL = "https://doctors-appointment-sigma-eosin.vercel.app";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_URL || BACKEND_URL,

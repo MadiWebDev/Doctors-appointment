@@ -7,7 +7,7 @@
  "rewrites": [
   {
     "source": "/api/(.*)",
-    "destination": "https://doctors-appointment-sigma-coral.vercel.app/api/$1"
+    "destination": "https://doctors-appointment-sigma-eosin.vercel.app/api/$1"
   },
   {
     "source": "/(.*)",
