@@ -5,7 +5,7 @@ node_modules/
 .env
 .env.local
 .env.development
-.env.production
+.env.production.example
 .env.test
 
 # Build output
