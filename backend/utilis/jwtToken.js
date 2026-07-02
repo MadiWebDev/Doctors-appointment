@@ -12,20 +12,22 @@ const sendToken = (user, statusCode, res) => {
      // Convert COOKIE_EXPIRE from days to milliseconds
      const expireTime = parseInt(cookieExpire, 10) * 24 * 60 * 60 * 1000;
 
+     const isProduction = process.env.NODE_ENV === "production";
+
      // Options for access token cookie (shorter lived)
      const accessTokenOptions = {
        expires: new Date(Date.now() + expireTime),
        httpOnly: true,
-       secure: process.env.NODE_ENV === "production",
-       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+       secure: isProduction,           // must be true for sameSite: 'none'
+       sameSite: isProduction ? "none" : "lax", // 'none' allows cross-domain cookies
      };
 
      // Options for refresh token cookie (longer lived)
      const refreshTokenOptions = {
        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
        httpOnly: true,
-       secure: process.env.NODE_ENV === "production",
-       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+       secure: isProduction,
+       sameSite: isProduction ? "none" : "lax",
      };
 
      // Set both cookies
