@@ -4,6 +4,14 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://doctors-appointment-sigma-coral.vercel.app/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://doctors-appointment-sigma-coral.vercel.app/health"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

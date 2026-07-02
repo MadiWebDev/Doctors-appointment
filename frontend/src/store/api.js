@@ -1,10 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-// Production backend URL
-const BACKEND_URL = "https://doctors-appointment-sigma-coral.vercel.app";
-
+// Uses relative URL - Vercel proxy forwards /api/* to backend
 const baseQuery = fetchBaseQuery({
-  baseUrl: BACKEND_URL,
+  baseUrl: "/",
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.accessToken;
     if (token) {
