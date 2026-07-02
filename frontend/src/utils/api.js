@@ -1,11 +1,11 @@
 import axios from "axios";
 
-// Hardcoded production backend URL — env var fallback kept for local dev
+// Production backend URL
 const BACKEND_URL = "https://doctors-appointment-sigma-coral.vercel.app";
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || BACKEND_URL,
+  baseURL: BACKEND_URL,
   withCredentials: true, // Important for httpOnly cookies
   headers: {
     "Content-Type": "application/json",
