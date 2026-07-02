@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { useSelector } from 'react-redux';
 import { selectIsLoggedIn, selectUser } from '../features/auth/authSlice';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://doctors-appointment-sigma-coral.vercel.app';
 
 export const useSocket = (eventHandlers = {}) => {
   const isLoggedIn = useSelector(selectIsLoggedIn);
