@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Production backend URL
-const BACKEND_URL = "https://doctors-appointment-sigma-coral.vercel.app";
+const BACKEND_URL = "https://doctors-appointment-sigma-eosin.vercel.app/";
 
 // Create axios instance with base URL
 const api = axios.create({
